@@ -1,25 +1,17 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
 
   <meta
     name="viewport"
-    content="
-      width=device-width,
-      initial-scale=1,
-      maximum-scale=1,
-      user-scalable=no,
-      viewport-fit=cover
-    "
-  />
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  >
 
-  <title>Pirate Adventure</title>
+  <title>Pirate Adventure V0.2</title>
 
   <style>
     :root {
-      --game-width: 1280;
-      --game-height: 720;
       --safe-top: env(safe-area-inset-top, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -30,6 +22,9 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+
+      user-select: none;
+      -webkit-user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -37,17 +32,18 @@
     body {
       width: 100%;
       height: 100%;
+
       overflow: hidden;
-      background: #07141d;
-      font-family:
-        Inter,
-        "Noto Sans TC",
-        "Microsoft JhengHei",
-        Arial,
-        sans-serif;
-      overscroll-behavior: none;
+
+      background: #071018;
+
       touch-action: none;
-      user-select: none;
+      overscroll-behavior: none;
+
+      font-family:
+        Arial,
+        "Microsoft JhengHei",
+        sans-serif;
     }
 
     body {
@@ -56,397 +52,1087 @@
       justify-content: center;
     }
 
-    #app {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at center, #163544 0%, #07141d 72%);
+    button {
+      font: inherit;
     }
 
-    /*
-      內部遊戲的邏輯尺寸固定為 1280 × 720。
-      JavaScript 會依照裝置尺寸進行等比例縮放。
-    */
-    #game-frame {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 1280px;
-      height: 720px;
+    /* ==================================================
+       遊戲容器
+    ================================================== */
+
+    #game-wrapper {
+      position: relative;
+
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+
+      max-width: 1280px;
+      max-height: 720px;
+
       overflow: hidden;
-      background: #54b9d1;
-      transform-origin: center center;
-      transform: translate(-50%, -50%) scale(1);
+
+      background: #0e2933;
+
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 28px 80px rgba(0, 0, 0, 0.48);
     }
 
     #game-canvas {
       display: block;
-      width: 1280px;
-      height: 720px;
+
+      width: 100%;
+      height: 100%;
+
       outline: none;
+
+      background: #58bed4;
     }
 
-    /* ---------------- HUD ---------------- */
+    /* ==================================================
+       手機直向提示
+    ================================================== */
+
+    #orientation-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 1000;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: #ffffff;
+
+      background:
+        radial-gradient(
+          circle at center,
+          #173442 0%,
+          #071018 74%
+        );
+
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+
+      transition:
+        opacity 0.55s ease,
+        visibility 0.55s ease;
+    }
+
+    #orientation-screen.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .orientation-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      gap: 24px;
+
+      padding: 28px;
+
+      text-align: center;
+
+      animation:
+        orientationBreathe 2s ease-in-out infinite;
+    }
+
+    .phone-rotate-icon {
+      position: relative;
+
+      width: 70px;
+      height: 116px;
+
+      border: 4px solid rgba(255, 255, 255, 0.92);
+      border-radius: 14px;
+
+      transform: rotate(-18deg);
+
+      animation:
+        phoneRotate 2.2s ease-in-out infinite;
+    }
+
+    .phone-rotate-icon::before {
+      content: "";
+
+      position: absolute;
+      left: 50%;
+      bottom: 7px;
+
+      width: 8px;
+      height: 8px;
+
+      border-radius: 50%;
+
+      background: rgba(255, 255, 255, 0.92);
+
+      transform: translateX(-50%);
+    }
+
+    .phone-rotate-icon::after {
+      content: "↻";
+
+      position: absolute;
+      top: 50%;
+      left: 100%;
+
+      margin-left: 18px;
+
+      color: rgba(255, 255, 255, 0.82);
+
+      font-size: 44px;
+
+      transform: translateY(-50%);
+    }
+
+    .orientation-title {
+      font-size: clamp(24px, 6vw, 38px);
+      font-weight: 800;
+
+      letter-spacing: 2px;
+    }
+
+    .orientation-subtitle {
+      margin-top: 9px;
+
+      color: rgba(255, 255, 255, 0.66);
+
+      font-size: clamp(14px, 3.5vw, 18px);
+      line-height: 1.6;
+    }
+
+    @keyframes orientationBreathe {
+      0%,
+      100% {
+        opacity: 0.58;
+        transform: scale(0.96);
+      }
+
+      50% {
+        opacity: 1;
+        transform: scale(1.04);
+      }
+    }
+
+    @keyframes phoneRotate {
+      0%,
+      100% {
+        transform: rotate(-18deg);
+      }
+
+      50% {
+        transform: rotate(72deg);
+      }
+    }
+
+    /* ==================================================
+       Loading
+    ================================================== */
+
+    #loading-page {
+      position: absolute;
+      inset: 0;
+      z-index: 800;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      overflow: hidden;
+
+      background:
+        radial-gradient(
+          circle at 50% 40%,
+          rgba(46, 92, 104, 0.68) 0%,
+          rgba(11, 28, 36, 0.98) 50%,
+          #060d13 100%
+        );
+
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+
+      transition:
+        opacity 0.75s ease,
+        visibility 0.75s ease;
+    }
+
+    #loading-page.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #loading-page::before {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      opacity: 0.12;
+
+      background-image:
+        linear-gradient(
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+
+      background-size: 48px 48px;
+
+      animation:
+        loadingGridMove 10s linear infinite;
+    }
+
+    #loading-page::after {
+      content: "";
+
+      position: absolute;
+      left: 50%;
+      bottom: -150px;
+
+      width: 680px;
+      height: 280px;
+
+      border-radius: 50%;
+
+      background:
+        radial-gradient(
+          ellipse,
+          rgba(70, 177, 193, 0.22) 0%,
+          transparent 70%
+        );
+
+      transform: translateX(-50%);
+    }
+
+    @keyframes loadingGridMove {
+      from {
+        background-position: 0 0;
+      }
+
+      to {
+        background-position: 48px 48px;
+      }
+    }
+
+    .loading-content {
+      position: relative;
+      z-index: 2;
+
+      width: min(78%, 560px);
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+
+      text-align: center;
+    }
+
+    .game-logo {
+      margin-bottom: 48px;
+
+      opacity: 0;
+
+      transform: translateY(18px);
+
+      animation:
+        logoFadeIn 0.9s 0.2s ease forwards;
+    }
+
+    .logo-main {
+      display: block;
+
+      color: #f7f5ed;
+
+      font-size: clamp(42px, 7vw, 86px);
+      font-weight: 900;
+
+      letter-spacing: clamp(6px, 1.1vw, 14px);
+
+      text-shadow:
+        0 4px 0 rgba(0, 0, 0, 0.42),
+        0 14px 32px rgba(0, 0, 0, 0.62);
+    }
+
+    .logo-sub {
+      display: block;
+
+      margin-top: 5px;
+
+      color: rgba(214, 222, 220, 0.72);
+
+      font-size: clamp(13px, 1.8vw, 22px);
+      font-weight: 700;
+
+      letter-spacing: clamp(8px, 1.5vw, 18px);
+    }
+
+    @keyframes logoFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #loading-status {
+      width: 100%;
+
+      opacity: 1;
+      transform: translateY(0);
+
+      transition:
+        opacity 0.4s ease,
+        transform 0.4s ease;
+    }
+
+    #loading-status.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+
+      pointer-events: none;
+    }
+
+    .loading-text {
+      margin-bottom: 12px;
+
+      display: flex;
+      justify-content: space-between;
+
+      gap: 18px;
+
+      color: rgba(255, 255, 255, 0.78);
+
+      font-size: clamp(13px, 1.8vw, 18px);
+      letter-spacing: 1px;
+    }
+
+    #loading-message {
+      text-align: left;
+    }
+
+    #progress-number {
+      min-width: 52px;
+
+      text-align: right;
+    }
+
+    #progress-track {
+      position: relative;
+
+      width: 100%;
+      height: clamp(12px, 1.7vw, 18px);
+
+      overflow: hidden;
+
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 999px;
+
+      background: rgba(0, 0, 0, 0.36);
+    }
+
+    #progress-bar {
+      position: relative;
+
+      width: 0%;
+      height: 100%;
+
+      overflow: hidden;
+
+      border-radius: inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          #b48a45,
+          #f0d78a,
+          #bd9149
+        );
+
+      box-shadow:
+        0 0 18px rgba(239, 207, 124, 0.32);
+
+      transition:
+        width 0.12s linear;
+    }
+
+    #progress-bar::after {
+      content: "";
+
+      position: absolute;
+      inset: 0 auto 0 0;
+
+      width: 120px;
+
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.58),
+          transparent
+        );
+
+      animation:
+        loadingShine 1.2s linear infinite;
+    }
+
+    @keyframes loadingShine {
+      from {
+        transform: translateX(-130px);
+      }
+
+      to {
+        transform: translateX(620px);
+      }
+    }
+
+    #start-game-button {
+      position: absolute;
+      top: calc(100% - 68px);
+
+      min-width: 220px;
+
+      padding: 15px 34px;
+
+      border: 1px solid rgba(255, 255, 255, 0.42);
+      border-radius: 8px;
+
+      color: #ffffff;
+
+      background:
+        linear-gradient(
+          180deg,
+          rgba(178, 135, 69, 0.97),
+          rgba(92, 61, 31, 0.99)
+        );
+
+      box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.42);
+
+      font-size: clamp(17px, 2.2vw, 24px);
+      font-weight: 800;
+
+      letter-spacing: 3px;
+
+      cursor: pointer;
+
+      opacity: 0;
+      visibility: hidden;
+
+      transform: translateY(16px);
+
+      transition:
+        opacity 0.6s ease,
+        visibility 0.6s ease,
+        transform 0.6s ease,
+        filter 0.2s ease;
+    }
+
+    #start-game-button.visible {
+      opacity: 1;
+      visibility: visible;
+
+      transform: translateY(0);
+    }
+
+    #start-game-button:hover {
+      filter: brightness(1.12);
+    }
+
+    #start-game-button:active {
+      transform: scale(0.96);
+    }
+
+    /* ==================================================
+       關卡進場
+    ================================================== */
+
+    #stage-intro {
+      position: absolute;
+      inset: 0;
+      z-index: 600;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+
+      gap: 10px;
+
+      color: #ffffff;
+
+      background: rgba(0, 0, 0, 0.58);
+
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+
+      transition:
+        opacity 0.45s ease,
+        visibility 0.45s ease;
+    }
+
+    #stage-intro.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #stage-intro.fade-out {
+      opacity: 0;
+    }
+
+    #stage-intro-title {
+      font-size: clamp(44px, 7vw, 88px);
+      font-weight: 900;
+
+      letter-spacing: clamp(7px, 1.5vw, 18px);
+
+      text-shadow:
+        0 5px 0 rgba(0, 0, 0, 0.46),
+        0 16px 40px rgba(0, 0, 0, 0.78);
+
+      opacity: 0;
+      transform: scale(0.88);
+    }
+
+    #stage-intro-subtitle {
+      color: rgba(255, 255, 255, 0.74);
+
+      font-size: clamp(18px, 2.6vw, 32px);
+      font-weight: 700;
+
+      letter-spacing: 5px;
+
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    #stage-intro.visible #stage-intro-title {
+      animation:
+        stageTitleEnter 0.35s ease forwards;
+    }
+
+    #stage-intro.visible #stage-intro-subtitle {
+      animation:
+        stageSubtitleEnter 0.45s 0.16s ease forwards;
+    }
+
+    @keyframes stageTitleEnter {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes stageSubtitleEnter {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ==================================================
+       HUD
+    ================================================== */
 
     #hud {
       position: absolute;
       inset: 0;
-      z-index: 10;
+      z-index: 100;
+
+      opacity: 0;
+      visibility: hidden;
       pointer-events: none;
+
+      transition:
+        opacity 0.45s ease,
+        visibility 0.45s ease;
     }
 
-    .top-bar {
+    #hud.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #mission-panel {
       position: absolute;
-      top: 24px;
+      top: 22px;
       left: 24px;
-      right: 24px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 20px;
-    }
 
-    .status-panel {
-      min-width: 260px;
-      padding: 14px 18px;
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 16px;
+      max-width: 380px;
+
+      padding: 13px 17px;
+
+      border-left: 4px solid rgba(235, 196, 105, 0.92);
+
       color: #ffffff;
-      background: rgba(6, 22, 30, 0.68);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
-      backdrop-filter: blur(12px);
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(5, 18, 25, 0.8),
+          rgba(5, 18, 25, 0.28)
+        );
+
+      text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.48);
+
+      opacity: 0;
+      transform: translateX(-14px);
+
+      transition:
+        opacity 0.5s ease,
+        transform 0.5s ease;
     }
 
-    .game-title {
-      margin-bottom: 6px;
-      font-size: 21px;
+    #mission-panel.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    #mission-label {
+      margin-bottom: 4px;
+
+      color: rgba(239, 205, 122, 0.94);
+
+      font-size: 12px;
       font-weight: 800;
-      letter-spacing: 0.04em;
+
+      letter-spacing: 3px;
     }
 
-    .objective {
-      color: rgba(255, 255, 255, 0.78);
-      font-size: 14px;
-      line-height: 1.5;
+    #mission-text {
+      font-size: clamp(14px, 1.6vw, 20px);
+      font-weight: 700;
+      line-height: 1.45;
     }
 
-    .control-help {
-      padding: 12px 15px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 14px;
-      color: rgba(255, 255, 255, 0.86);
-      background: rgba(6, 22, 30, 0.58);
-      font-size: 13px;
-      line-height: 1.6;
-      text-align: right;
-      backdrop-filter: blur(10px);
+    #desktop-help {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+
+      padding: 9px 15px;
+
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+
+      color: rgba(255, 255, 255, 0.7);
+
+      background: rgba(5, 18, 25, 0.5);
+
+      font-size: clamp(11px, 1.2vw, 15px);
+
+      transform: translateX(-50%);
+
+      backdrop-filter: blur(6px);
     }
 
     #interaction-prompt {
       position: absolute;
       left: 50%;
-      bottom: 108px;
-      min-width: 230px;
+      bottom: 56px;
+
+      min-width: 220px;
+
       padding: 12px 20px;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+
+      border: 1px solid rgba(255, 255, 255, 0.22);
       border-radius: 999px;
+
       color: #ffffff;
-      background: rgba(5, 19, 27, 0.78);
-      font-size: 15px;
-      font-weight: 700;
+
+      background: rgba(4, 16, 23, 0.82);
+
+      font-size: clamp(13px, 1.4vw, 17px);
+      font-weight: 800;
+
       text-align: center;
+
       opacity: 0;
-      transform: translateX(-50%) translateY(12px);
+
+      transform:
+        translateX(-50%)
+        translateY(10px);
+
       transition:
-        opacity 160ms ease,
-        transform 160ms ease;
-      backdrop-filter: blur(10px);
+        opacity 0.18s ease,
+        transform 0.18s ease;
+
+      backdrop-filter: blur(8px);
     }
 
     #interaction-prompt.visible {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+
+      transform:
+        translateX(-50%)
+        translateY(0);
     }
 
-    #message {
+    #toast-message {
       position: absolute;
       left: 50%;
-      top: 82px;
+      top: 98px;
+
       max-width: 520px;
+
       padding: 13px 22px;
-      border-radius: 14px;
+
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 9px;
+
       color: #ffffff;
-      background: rgba(10, 30, 38, 0.88);
-      font-size: 16px;
-      font-weight: 700;
+
+      background: rgba(4, 16, 23, 0.86);
+
+      font-size: clamp(14px, 1.6vw, 19px);
+      font-weight: 800;
+
       text-align: center;
+
       opacity: 0;
-      transform: translateX(-50%) translateY(-12px);
+
+      transform:
+        translateX(-50%)
+        translateY(-10px);
+
       transition:
-        opacity 180ms ease,
-        transform 180ms ease;
-      backdrop-filter: blur(10px);
+        opacity 0.25s ease,
+        transform 0.25s ease;
+
+      backdrop-filter: blur(8px);
     }
 
-    #message.visible {
+    #toast-message.visible {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+
+      transform:
+        translateX(-50%)
+        translateY(0);
     }
 
-    /* ---------------- Loading ---------------- */
+    /* ==================================================
+       手機操作
+    ================================================== */
 
-    #loading-screen {
+    #touch-controls {
       position: absolute;
       inset: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background:
-        linear-gradient(
-          160deg,
-          rgba(8, 27, 38, 0.98),
-          rgba(14, 61, 75, 0.98)
-        );
-      transition:
-        opacity 350ms ease,
-        visibility 350ms ease;
-    }
+      z-index: 200;
 
-    #loading-screen.hidden {
-      visibility: hidden;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .loading-card {
-      width: min(420px, calc(100% - 48px));
-      padding: 34px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 22px;
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.08);
-      box-shadow: 0 22px 60px rgba(0, 0, 0, 0.25);
-      text-align: center;
-      backdrop-filter: blur(15px);
-    }
-
-    .loading-card h1 {
-      margin-bottom: 10px;
-      font-size: 28px;
-      letter-spacing: 0.04em;
-    }
-
-    .loading-card p {
-      margin-bottom: 22px;
-      color: rgba(255, 255, 255, 0.72);
-      font-size: 14px;
-    }
-
-    .loading-track {
-      width: 100%;
-      height: 10px;
-      overflow: hidden;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-    }
-
-    #loading-progress {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, #f3c767, #ffe8a6);
-      transition: width 180ms ease;
-    }
-
-    #loading-text {
-      margin-top: 12px;
-      color: rgba(255, 255, 255, 0.8);
-      font-size: 13px;
-    }
-
-    /* ---------------- Mobile controls ---------------- */
-
-    #mobile-controls {
-      position: absolute;
-      inset: 0;
-      z-index: 30;
       display: none;
+
+      opacity: 0;
+      visibility: hidden;
+
       pointer-events: none;
+
+      transition:
+        opacity 0.35s ease,
+        visibility 0.35s ease;
     }
 
-    #joystick-area {
+    #touch-controls.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #joystick-zone {
       position: absolute;
-      left: 38px;
-      bottom: 32px;
-      width: 170px;
-      height: 170px;
+
+      left: max(22px, calc(var(--safe-left) + 16px));
+      bottom: max(20px, calc(var(--safe-bottom) + 14px));
+
+      width: 150px;
+      height: 150px;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       pointer-events: auto;
+
       touch-action: none;
     }
 
     #joystick-base {
       position: relative;
-      width: 144px;
-      height: 144px;
-      border: 2px solid rgba(255, 255, 255, 0.22);
+
+      width: 124px;
+      height: 124px;
+
+      border: 2px solid rgba(255, 255, 255, 0.17);
       border-radius: 50%;
-      background: rgba(8, 25, 34, 0.42);
+
+      background: rgba(4, 17, 24, 0.28);
+
       box-shadow:
-        inset 0 0 22px rgba(255, 255, 255, 0.06),
-        0 8px 24px rgba(0, 0, 0, 0.18);
-      backdrop-filter: blur(8px);
+        inset 0 0 20px rgba(255, 255, 255, 0.035),
+        0 8px 22px rgba(0, 0, 0, 0.16);
+
+      backdrop-filter: blur(5px);
     }
 
     #joystick-stick {
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 66px;
-      height: 66px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
+
+      width: 58px;
+      height: 58px;
+
+      border: 2px solid rgba(255, 255, 255, 0.24);
       border-radius: 50%;
+
       background:
         radial-gradient(
-          circle at 38% 32%,
-          rgba(255, 255, 255, 0.32),
-          rgba(20, 55, 67, 0.76)
+          circle at 36% 30%,
+          rgba(255, 255, 255, 0.24),
+          rgba(18, 47, 56, 0.65)
         );
-      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+
+      box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.22);
+
       transform: translate(-50%, -50%);
     }
 
-    #mobile-action-button {
+    #interaction-button {
       position: absolute;
-      right: 50px;
-      bottom: 55px;
-      width: 112px;
-      height: 112px;
-      border: 3px solid rgba(255, 255, 255, 0.32);
+
+      right: max(34px, calc(var(--safe-right) + 24px));
+      bottom: max(42px, calc(var(--safe-bottom) + 28px));
+
+      width: 92px;
+      height: 92px;
+
+      border: 2px solid rgba(255, 255, 255, 0.25);
       border-radius: 50%;
-      color: #17222a;
+
+      color: rgba(255, 255, 255, 0.94);
+
       background:
-        radial-gradient(circle at 36% 28%, #fff1b6, #e7ac42 72%);
+        radial-gradient(
+          circle at 35% 28%,
+          rgba(191, 151, 79, 0.88),
+          rgba(73, 47, 26, 0.86)
+        );
+
       box-shadow:
-        0 12px 28px rgba(0, 0, 0, 0.28),
-        inset 0 4px 8px rgba(255, 255, 255, 0.42);
-      font-family: inherit;
-      font-size: 18px;
+        0 10px 24px rgba(0, 0, 0, 0.25),
+        inset 0 3px 7px rgba(255, 255, 255, 0.18);
+
+      font-size: 17px;
       font-weight: 900;
+
       pointer-events: auto;
+
       touch-action: manipulation;
+
+      transition:
+        transform 0.1s ease,
+        filter 0.1s ease;
     }
 
-    #mobile-action-button:active,
-    #mobile-action-button.pressed {
-      transform: scale(0.93);
-      filter: brightness(0.92);
+    #interaction-button.pressed {
+      transform: scale(0.92);
+      filter: brightness(0.88);
     }
 
-    /* 電腦環境不顯示搖桿與手機互動鍵 */
+    @media (pointer: coarse), (max-width: 900px) {
+      #touch-controls {
+        display: block;
+      }
+
+      #desktop-help {
+        display: none;
+      }
+
+      #mission-panel {
+        top: 15px;
+        left: 17px;
+
+        max-width: 300px;
+
+        padding: 10px 13px;
+      }
+
+      #interaction-prompt {
+        bottom: 152px;
+      }
+    }
+
     @media (pointer: fine) and (hover: hover) {
-      #mobile-controls {
+      #touch-controls {
         display: none !important;
       }
     }
 
-    /*
-      觸控裝置顯示手機操作介面。
-      包含手機和平板。
-    */
-    @media (pointer: coarse), (max-width: 900px) {
-      #mobile-controls {
-        display: block;
+    @media (max-height: 520px) and (pointer: coarse) {
+      #joystick-zone {
+        left: max(14px, calc(var(--safe-left) + 8px));
+        bottom: max(8px, calc(var(--safe-bottom) + 4px));
+
+        width: 124px;
+        height: 124px;
       }
 
-      .control-help {
-        display: none;
+      #joystick-base {
+        width: 104px;
+        height: 104px;
       }
 
-      .top-bar {
-        top: 20px;
-        left: 20px;
-        right: 20px;
+      #joystick-stick {
+        width: 50px;
+        height: 50px;
       }
 
-      .status-panel {
-        min-width: 0;
-        max-width: 360px;
-        padding: 12px 15px;
-      }
+      #interaction-button {
+        right: max(24px, calc(var(--safe-right) + 16px));
+        bottom: max(24px, calc(var(--safe-bottom) + 14px));
 
-      .game-title {
-        font-size: 18px;
-      }
+        width: 78px;
+        height: 78px;
 
-      .objective {
-        font-size: 13px;
+        font-size: 15px;
       }
 
       #interaction-prompt {
-        bottom: 178px;
+        bottom: 124px;
       }
     }
   </style>
 </head>
 
 <body>
-  <main id="app">
-    <section id="game-frame" aria-label="遊戲畫面">
-      <canvas id="game-canvas" tabindex="0"></canvas>
+  <main id="game-wrapper">
+    <canvas
+      id="game-canvas"
+      width="1280"
+      height="720"
+      tabindex="0"
+    ></canvas>
 
-      <div id="hud">
-        <div class="top-bar">
-          <div class="status-panel">
-            <div class="game-title">Pirate Adventure</div>
-            <div class="objective" id="objective">
-              目標：靠近寶箱並進行互動
-            </div>
+    <section
+      id="orientation-screen"
+      aria-label="請旋轉手機"
+    >
+      <div class="orientation-content">
+        <div
+          class="phone-rotate-icon"
+          aria-hidden="true"
+        ></div>
+
+        <div>
+          <div class="orientation-title">
+            請將手機轉為橫向
           </div>
 
-          <div class="control-help">
-            WASD／方向鍵：移動<br />
-            E／Space：互動
+          <div class="orientation-subtitle">
+            橫向模式可獲得最佳遊戲體驗
           </div>
         </div>
-
-        <div id="message"></div>
-        <div id="interaction-prompt">按 E 互動</div>
       </div>
+    </section>
 
-      <div id="mobile-controls">
-        <div id="joystick-area" aria-label="虛擬搖桿">
-          <div id="joystick-base">
-            <div id="joystick-stick"></div>
+    <section
+      id="loading-page"
+      aria-label="遊戲載入畫面"
+    >
+      <div class="loading-content">
+        <div class="game-logo">
+          <span class="logo-main">
+            PIRATE
+          </span>
+
+          <span class="logo-sub">
+            ADVENTURE
+          </span>
+        </div>
+
+        <div id="loading-status">
+          <div class="loading-text">
+            <span id="loading-message">
+              正在確認航行路線……
+            </span>
+
+            <span id="progress-number">
+              0%
+            </span>
+          </div>
+
+          <div id="progress-track">
+            <div id="progress-bar"></div>
           </div>
         </div>
 
         <button
-          id="mobile-action-button"
+          id="start-game-button"
           type="button"
-          aria-label="互動"
         >
-          互動
+          開始冒險
         </button>
       </div>
+    </section>
 
-      <div id="loading-screen">
-        <div class="loading-card">
-          <h1>Pirate Adventure</h1>
-          <p>正在載入海盜世界</p>
+    <section
+      id="stage-intro"
+      aria-label="關卡開始"
+    >
+      <div id="stage-intro-title">
+        CHAPTER 1
+      </div>
 
-          <div class="loading-track">
-            <div id="loading-progress"></div>
-          </div>
+      <div id="stage-intro-subtitle">
+        寶藏島
+      </div>
+    </section>
 
-          <div id="loading-text">準備場景中……</div>
+    <section id="hud">
+      <div id="mission-panel">
+        <div id="mission-label">
+          CURRENT MISSION
+        </div>
+
+        <div id="mission-text">
+          尋找島上的寶箱
         </div>
       </div>
+
+      <div id="desktop-help">
+        WASD／方向鍵移動｜E／Space 互動
+      </div>
+
+      <div id="toast-message"></div>
+
+      <div id="interaction-prompt">
+        按 E 互動
+      </div>
+    </section>
+
+    <section id="touch-controls">
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-stick"></div>
+        </div>
+      </div>
+
+      <button
+        id="interaction-button"
+        type="button"
+        aria-label="互動"
+      >
+        互動
+      </button>
     </section>
   </main>
 
@@ -461,149 +1147,344 @@
 
   <script type="module">
     import * as THREE from "three";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import {
+      GLTFLoader
+    } from "three/addons/loaders/GLTFLoader.js";
 
-    /* =========================================================
-       基本設定
-    ========================================================= */
+    /* ==================================================
+       DOM
+    ================================================== */
 
-    const LOGICAL_WIDTH = 1280;
-    const LOGICAL_HEIGHT = 720;
+    const canvas =
+      document.getElementById("game-canvas");
 
-    /*
-      目前 GitHub 的 pirate 資料夾名稱前面存在空格，
-      因此暫時使用 %20。
+    const orientationScreen =
+      document.getElementById("orientation-screen");
 
-      資料夾改名為 pirate 後，請改成：
-      "./assets/models/pirate/"
-    */
-    const MODEL_BASE_PATH = "./assets/models/%20pirate/";
+    const loadingPage =
+      document.getElementById("loading-page");
 
-    const canvas = document.getElementById("game-canvas");
-    const gameFrame = document.getElementById("game-frame");
+    const loadingStatus =
+      document.getElementById("loading-status");
 
-    const loadingScreen = document.getElementById("loading-screen");
-    const loadingProgress = document.getElementById("loading-progress");
-    const loadingText = document.getElementById("loading-text");
+    const loadingMessage =
+      document.getElementById("loading-message");
 
-    const interactionPrompt = document.getElementById(
-      "interaction-prompt"
-    );
+    const progressNumber =
+      document.getElementById("progress-number");
 
-    const messageElement = document.getElementById("message");
-    const objectiveElement = document.getElementById("objective");
+    const progressBar =
+      document.getElementById("progress-bar");
 
-    const mobileControls = document.getElementById("mobile-controls");
-    const joystickArea = document.getElementById("joystick-area");
-    const joystickStick = document.getElementById("joystick-stick");
-    const actionButton = document.getElementById(
-      "mobile-action-button"
-    );
+    const startGameButton =
+      document.getElementById("start-game-button");
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x78cce0);
-    scene.fog = new THREE.Fog(0x78cce0, 38, 105);
+    const stageIntro =
+      document.getElementById("stage-intro");
 
-    const camera = new THREE.PerspectiveCamera(
-      46,
-      LOGICAL_WIDTH / LOGICAL_HEIGHT,
-      0.1,
-      300
-    );
+    const hud =
+      document.getElementById("hud");
 
-    camera.position.set(18, 22, 24);
+    const missionPanel =
+      document.getElementById("mission-panel");
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: false,
-      powerPreference: "high-performance"
-    });
+    const missionText =
+      document.getElementById("mission-text");
 
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, 2)
-    );
+    const toastMessage =
+      document.getElementById("toast-message");
 
-    renderer.setSize(LOGICAL_WIDTH, LOGICAL_HEIGHT, false);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    const interactionPrompt =
+      document.getElementById("interaction-prompt");
 
-    const clock = new THREE.Clock();
-    const loader = new GLTFLoader();
+    const touchControls =
+      document.getElementById("touch-controls");
+
+    const joystickZone =
+      document.getElementById("joystick-zone");
+
+    const joystickStick =
+      document.getElementById("joystick-stick");
+
+    const interactionButton =
+      document.getElementById("interaction-button");
+
+    /* ==================================================
+       常數
+    ================================================== */
+
+    const GAME_WIDTH = 1280;
+    const GAME_HEIGHT = 720;
+
+    const MODEL_BASE_PATH =
+      "./assets/models/pirate/";
+
+    const PLAYER_BASE_Y = 2.18;
+    const PLAYER_SPEED = 7.2;
+    const INTERACTION_DISTANCE = 3.5;
+
+    /* ==================================================
+       狀態
+    ================================================== */
+
+    const state = {
+      assetsReady: false,
+      gameStarted: false,
+      inputEnabled: false,
+      chestOpened: false,
+      currentInteractable: null,
+      toastTimer: null
+    };
 
     const input = {
       forward: false,
       backward: false,
       left: false,
       right: false,
-      interactRequested: false,
+
       joystickX: 0,
-      joystickY: 0
+      joystickY: 0,
+
+      interactionRequested: false
     };
 
     const world = {
       player: null,
       chest: null,
-      chestClosed: true,
-      currentInteractable: null,
       ship: null,
       water: null
     };
 
-    const interactionDistance = 3.4;
+    /* ==================================================
+       Three.js
+    ================================================== */
 
-    let messageTimer = null;
+    const scene = new THREE.Scene();
 
-    /* =========================================================
-       畫面自適應
-    ========================================================= */
+    scene.background =
+      new THREE.Color(0x79c9dc);
 
-    function resizeGameFrame() {
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+    scene.fog =
+      new THREE.Fog(0x79c9dc, 38, 108);
 
-      const scale = Math.min(
-        viewportWidth / LOGICAL_WIDTH,
-        viewportHeight / LOGICAL_HEIGHT
+    const camera =
+      new THREE.PerspectiveCamera(
+        46,
+        GAME_WIDTH / GAME_HEIGHT,
+        0.1,
+        300
       );
 
-      gameFrame.style.transform =
-        `translate(-50%, -50%) scale(${scale})`;
-    }
+    camera.position.set(16, 20, 23);
 
-    window.addEventListener("resize", resizeGameFrame);
-    window.addEventListener(
-      "orientationchange",
-      resizeGameFrame
+    const renderer =
+      new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance"
+      });
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, 2)
     );
 
-    resizeGameFrame();
+    renderer.setSize(
+      GAME_WIDTH,
+      GAME_HEIGHT,
+      false
+    );
 
-    /* =========================================================
+    renderer.shadowMap.enabled = true;
+
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+    renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+
+    renderer.toneMappingExposure = 1.05;
+
+    const clock = new THREE.Clock();
+
+    const loadingManager =
+      new THREE.LoadingManager();
+
+    const loader =
+      new GLTFLoader(loadingManager);
+
+    /* ==================================================
+       Loading 管理
+    ================================================== */
+
+    const loadingMessages = [
+      "正在確認航行路線……",
+      "正在準備寶藏島……",
+      "正在搬運海盜物資……",
+      "正在尋找失落寶箱……",
+      "船員準備就緒……"
+    ];
+
+    loadingManager.onProgress = (
+      url,
+      itemsLoaded,
+      itemsTotal
+    ) => {
+      const percentage =
+        itemsTotal > 0
+          ? Math.round(
+              (itemsLoaded / itemsTotal) * 100
+            )
+          : 0;
+
+      setLoadingProgress(percentage);
+    };
+
+    loadingManager.onLoad = () => {
+      completeLoading();
+    };
+
+    loadingManager.onError = (url) => {
+      console.warn(
+        "模型載入失敗，已改用暫代素材：",
+        url
+      );
+    };
+
+    function setLoadingProgress(
+      percentage,
+      customMessage = null
+    ) {
+      const safePercentage =
+        THREE.MathUtils.clamp(
+          Math.round(percentage),
+          0,
+          100
+        );
+
+      progressBar.style.width =
+        `${safePercentage}%`;
+
+      progressNumber.textContent =
+        `${safePercentage}%`;
+
+      if (customMessage) {
+        loadingMessage.textContent =
+          customMessage;
+
+        return;
+      }
+
+      const messageIndex =
+        Math.min(
+          loadingMessages.length - 1,
+          Math.floor(
+            safePercentage /
+            (100 / loadingMessages.length)
+          )
+        );
+
+      loadingMessage.textContent =
+        loadingMessages[messageIndex];
+    }
+
+    function completeLoading() {
+      if (state.assetsReady) {
+        return;
+      }
+
+      state.assetsReady = true;
+
+      setLoadingProgress(
+        100,
+        "準備啟航"
+      );
+
+      window.setTimeout(() => {
+        loadingStatus.classList.add("hidden");
+        startGameButton.classList.add("visible");
+      }, 380);
+    }
+
+    /* ==================================================
+       裝置與方向
+    ================================================== */
+
+    function isTouchDevice() {
+      return window.matchMedia(
+        "(pointer: coarse)"
+      ).matches;
+    }
+
+    function isPortrait() {
+      return window.innerHeight >
+        window.innerWidth;
+    }
+
+    function updateOrientationScreen() {
+      const shouldShow =
+        isTouchDevice() &&
+        isPortrait();
+
+      orientationScreen.classList.toggle(
+        "visible",
+        shouldShow
+      );
+    }
+
+    window.addEventListener(
+      "resize",
+      updateOrientationScreen
+    );
+
+    window.addEventListener(
+      "orientationchange",
+      () => {
+        window.setTimeout(
+          updateOrientationScreen,
+          120
+        );
+      }
+    );
+
+    updateOrientationScreen();
+
+    /* ==================================================
        光源
-    ========================================================= */
+    ================================================== */
 
     function createLights() {
-      const hemisphereLight = new THREE.HemisphereLight(
-        0xc9f4ff,
-        0x405a32,
-        2.1
+      const hemisphere =
+        new THREE.HemisphereLight(
+          0xd7f7ff,
+          0x3a5031,
+          2.15
+        );
+
+      scene.add(hemisphere);
+
+      const sunlight =
+        new THREE.DirectionalLight(
+          0xfff1ca,
+          3.3
+        );
+
+      sunlight.position.set(
+        -18,
+        34,
+        16
       );
 
-      scene.add(hemisphereLight);
-
-      const sunlight = new THREE.DirectionalLight(
-        0xfff2cf,
-        3.4
-      );
-
-      sunlight.position.set(-18, 32, 14);
       sunlight.castShadow = true;
 
-      sunlight.shadow.mapSize.set(2048, 2048);
+      sunlight.shadow.mapSize.set(
+        2048,
+        2048
+      );
+
       sunlight.shadow.camera.left = -38;
       sunlight.shadow.camera.right = 38;
       sunlight.shadow.camera.top = 38;
@@ -614,153 +1495,246 @@
       scene.add(sunlight);
     }
 
-    /* =========================================================
-       場景
-    ========================================================= */
+    /* ==================================================
+       海洋與島嶼
+    ================================================== */
 
     function createWater() {
-      const geometry = new THREE.PlaneGeometry(220, 220, 1, 1);
+      const geometry =
+        new THREE.PlaneGeometry(
+          220,
+          220
+        );
 
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x1596b8,
-        roughness: 0.26,
-        metalness: 0.08
-      });
+      const material =
+        new THREE.MeshStandardMaterial({
+          color: 0x168faa,
+          roughness: 0.28,
+          metalness: 0.08
+        });
 
-      const water = new THREE.Mesh(geometry, material);
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = -0.65;
+      const water =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+      water.rotation.x =
+        -Math.PI / 2;
+
+      water.position.y = -0.68;
+
       water.receiveShadow = true;
 
       scene.add(water);
+
       world.water = water;
     }
 
     function createIsland() {
-      const islandGroup = new THREE.Group();
+      const islandGroup =
+        new THREE.Group();
 
-      const sandGeometry = new THREE.CylinderGeometry(
-        17,
-        20,
-        2.2,
-        48
-      );
-
-      const sandMaterial = new THREE.MeshStandardMaterial({
-        color: 0xe3c177,
-        roughness: 0.92
-      });
-
-      const sand = new THREE.Mesh(
-        sandGeometry,
-        sandMaterial
-      );
+      const sand =
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            17.5,
+            20,
+            2.2,
+            48
+          ),
+          new THREE.MeshStandardMaterial({
+            color: 0xe1be72,
+            roughness: 0.94
+          })
+        );
 
       sand.position.y = 0;
       sand.scale.z = 0.74;
-      sand.receiveShadow = true;
+
       sand.castShadow = true;
+      sand.receiveShadow = true;
 
       islandGroup.add(sand);
 
-      const grassGeometry = new THREE.CylinderGeometry(
-        13.4,
-        15.3,
-        1.15,
-        48
-      );
-
-      const grassMaterial = new THREE.MeshStandardMaterial({
-        color: 0x65a957,
-        roughness: 0.96
-      });
-
-      const grass = new THREE.Mesh(
-        grassGeometry,
-        grassMaterial
-      );
+      const grass =
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            13.7,
+            15.4,
+            1.18,
+            48
+          ),
+          new THREE.MeshStandardMaterial({
+            color: 0x66a955,
+            roughness: 0.96
+          })
+        );
 
       grass.position.y = 1.62;
       grass.scale.z = 0.72;
-      grass.receiveShadow = true;
+
       grass.castShadow = true;
+      grass.receiveShadow = true;
 
       islandGroup.add(grass);
+
       scene.add(islandGroup);
 
-      createPalmTree(-8.5, 3.2, 0.12);
-      createPalmTree(8.1, 2.5, -0.34);
-      createPalmTree(10, -4.6, 0.45);
-
-      createRock(-10.5, -4.8, 1.1);
-      createRock(8.8, 6.8, 0.8);
-      createRock(-5.2, 8.7, 0.65);
-    }
-
-    function createPalmTree(x, z, rotation = 0) {
-      const group = new THREE.Group();
-
-      const trunkMaterial = new THREE.MeshStandardMaterial({
-        color: 0x8a5635,
-        roughness: 0.9
-      });
-
-      const leafMaterial = new THREE.MeshStandardMaterial({
-        color: 0x347c45,
-        roughness: 0.88,
-        side: THREE.DoubleSide
-      });
-
-      const trunk = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.32, 0.52, 5.2, 8),
-        trunkMaterial
+      createPalmTree(
+        -8.6,
+        3.1,
+        0.1
       );
 
-      trunk.position.y = 4.6;
+      createPalmTree(
+        8,
+        2.6,
+        -0.34
+      );
+
+      createPalmTree(
+        10,
+        -4.6,
+        0.42
+      );
+
+      createRock(
+        -10.4,
+        -4.9,
+        1.05
+      );
+
+      createRock(
+        8.8,
+        6.6,
+        0.78
+      );
+
+      createRock(
+        -5.4,
+        8.5,
+        0.65
+      );
+    }
+
+    function createPalmTree(
+      x,
+      z,
+      rotationY
+    ) {
+      const group =
+        new THREE.Group();
+
+      const trunkMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x865333,
+          roughness: 0.92
+        });
+
+      const leafMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x347a43,
+          roughness: 0.9,
+          side: THREE.DoubleSide
+        });
+
+      const trunk =
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            0.3,
+            0.52,
+            5.1,
+            8
+          ),
+          trunkMaterial
+        );
+
+      trunk.position.y = 4.65;
       trunk.rotation.z = 0.08;
+
       trunk.castShadow = true;
 
       group.add(trunk);
 
-      for (let index = 0; index < 7; index += 1) {
-        const leaf = new THREE.Mesh(
-          new THREE.ConeGeometry(0.75, 4.1, 4),
-          leafMaterial
-        );
+      for (
+        let index = 0;
+        index < 7;
+        index += 1
+      ) {
+        const angle =
+          (index / 7) *
+          Math.PI *
+          2;
 
-        const angle = (index / 7) * Math.PI * 2;
+        const leaf =
+          new THREE.Mesh(
+            new THREE.ConeGeometry(
+              0.72,
+              4,
+              4
+            ),
+            leafMaterial
+          );
 
         leaf.position.set(
-          Math.cos(angle) * 1.25,
-          7.2,
-          Math.sin(angle) * 1.25
+          Math.cos(angle) * 1.2,
+          7.15,
+          Math.sin(angle) * 1.2
         );
 
-        leaf.rotation.z = Math.PI / 2.8;
-        leaf.rotation.y = -angle;
+        leaf.rotation.z =
+          Math.PI / 2.8;
+
+        leaf.rotation.y =
+          -angle;
+
         leaf.castShadow = true;
 
         group.add(leaf);
       }
 
-      group.position.set(x, 0, z);
-      group.rotation.y = rotation;
+      group.position.set(
+        x,
+        0,
+        z
+      );
+
+      group.rotation.y =
+        rotationY;
 
       scene.add(group);
     }
 
-    function createRock(x, z, scale) {
-      const geometry = new THREE.DodecahedronGeometry(1.4, 0);
+    function createRock(
+      x,
+      z,
+      scale
+    ) {
+      const rock =
+        new THREE.Mesh(
+          new THREE.DodecahedronGeometry(
+            1.4,
+            0
+          ),
+          new THREE.MeshStandardMaterial({
+            color: 0x747e78,
+            roughness: 0.96
+          })
+        );
 
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x768079,
-        roughness: 0.96
-      });
+      rock.position.set(
+        x,
+        2.2,
+        z
+      );
 
-      const rock = new THREE.Mesh(geometry, material);
+      rock.scale.set(
+        scale,
+        scale * 0.72,
+        scale * 0.9
+      );
 
-      rock.position.set(x, 2.2, z);
-      rock.scale.set(scale, scale * 0.72, scale * 0.9);
       rock.rotation.set(
         Math.random(),
         Math.random(),
@@ -773,194 +1747,290 @@
       scene.add(rock);
     }
 
-    /* =========================================================
-       玩家
-    ========================================================= */
+    /* ==================================================
+       玩家暫代模型
+    ================================================== */
 
     function createPlayer() {
-      const group = new THREE.Group();
+      const group =
+        new THREE.Group();
 
-      const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: 0x253346,
-        roughness: 0.75
-      });
+      const darkMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x253344,
+          roughness: 0.76
+        });
 
-      const shirtMaterial = new THREE.MeshStandardMaterial({
-        color: 0x9d2f2f,
-        roughness: 0.72
-      });
+      const shirtMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x963235,
+          roughness: 0.74
+        });
 
-      const skinMaterial = new THREE.MeshStandardMaterial({
-        color: 0xf0b37e,
-        roughness: 0.78
-      });
+      const skinMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0xefb27d,
+          roughness: 0.78
+        });
 
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.58, 1.15, 6, 12),
-        shirtMaterial
-      );
+      const body =
+        new THREE.Mesh(
+          new THREE.CapsuleGeometry(
+            0.58,
+            1.1,
+            6,
+            12
+          ),
+          shirtMaterial
+        );
 
       body.position.y = 1.32;
       body.castShadow = true;
 
       group.add(body);
 
-      const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.48, 20, 16),
-        skinMaterial
-      );
+      const head =
+        new THREE.Mesh(
+          new THREE.SphereGeometry(
+            0.47,
+            20,
+            16
+          ),
+          skinMaterial
+        );
 
-      head.position.y = 2.43;
+      head.position.y = 2.4;
       head.castShadow = true;
 
       group.add(head);
 
-      const hatBase = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.72, 0.72, 0.12, 20),
-        bodyMaterial
-      );
+      const hatBase =
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            0.73,
+            0.73,
+            0.12,
+            20
+          ),
+          darkMaterial
+        );
 
-      hatBase.position.y = 2.85;
-      hatBase.scale.z = 0.65;
+      hatBase.position.y = 2.83;
+      hatBase.scale.z = 0.64;
       hatBase.castShadow = true;
 
       group.add(hatBase);
 
-      const hatTop = new THREE.Mesh(
-        new THREE.BoxGeometry(0.9, 0.34, 0.55),
-        bodyMaterial
-      );
+      const hatTop =
+        new THREE.Mesh(
+          new THREE.BoxGeometry(
+            0.9,
+            0.32,
+            0.54
+          ),
+          darkMaterial
+        );
 
-      hatTop.position.y = 3.02;
+      hatTop.position.y = 3;
       hatTop.castShadow = true;
 
       group.add(hatTop);
 
-      group.position.set(0, 2.15, 6);
-      group.rotation.y = Math.PI;
+      group.position.set(
+        0,
+        PLAYER_BASE_Y,
+        6
+      );
+
+      group.rotation.y =
+        Math.PI;
 
       scene.add(group);
+
       world.player = group;
     }
 
-    /* =========================================================
-       GLB 模型
-    ========================================================= */
+    /* ==================================================
+       GLB 載入
+    ================================================== */
 
-    function loadModel(fileName, options = {}) {
+    function configureModel(model) {
+      model.traverse((child) => {
+        if (!child.isMesh) {
+          return;
+        }
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        if (child.material) {
+          child.material.side =
+            THREE.FrontSide;
+        }
+      });
+    }
+
+    function loadModel(
+      fileName,
+      options = {}
+    ) {
       const {
-        position = new THREE.Vector3(),
+        position =
+          new THREE.Vector3(),
+
         rotationY = 0,
+
         scale = 1
       } = options;
 
-      return new Promise((resolve, reject) => {
-        loader.load(
-          MODEL_BASE_PATH + fileName,
+      return new Promise(
+        (resolve, reject) => {
+          loader.load(
+            MODEL_BASE_PATH + fileName,
 
-          (gltf) => {
-            const model = gltf.scene;
+            (gltf) => {
+              const model =
+                gltf.scene;
 
-            model.position.copy(position);
-            model.rotation.y = rotationY;
-            model.scale.setScalar(scale);
+              configureModel(model);
 
-            model.traverse((child) => {
-              if (!child.isMesh) {
-                return;
-              }
+              model.position.copy(
+                position
+              );
 
-              child.castShadow = true;
-              child.receiveShadow = true;
+              model.rotation.y =
+                rotationY;
 
-              if (child.material) {
-                child.material.side = THREE.FrontSide;
-              }
-            });
+              model.scale.setScalar(
+                scale
+              );
 
-            scene.add(model);
-            resolve(model);
-          },
+              scene.add(model);
 
-          undefined,
+              resolve(model);
+            },
 
-          (error) => {
-            console.warn(
-              `模型載入失敗：${fileName}`,
-              error
-            );
+            undefined,
 
-            reject(error);
-          }
-        );
-      });
+            reject
+          );
+        }
+      );
     }
 
     async function createChest() {
       try {
-        const chest = await loadModel("chest.glb", {
-          position: new THREE.Vector3(0, 2.25, -4),
-          rotationY: Math.PI,
-          scale: 1.8
-        });
+        const chest =
+          await loadModel(
+            "chest.glb",
+            {
+              position:
+                new THREE.Vector3(
+                  0,
+                  2.24,
+                  -4.2
+                ),
 
-        chest.userData.interactionType = "chest";
-        chest.userData.interactionLabel = "開啟寶箱";
+              rotationY:
+                Math.PI,
+
+              scale: 1.8
+            }
+          );
+
+        chest.userData.type =
+          "chest";
 
         world.chest = chest;
-      } catch {
-        const chest = createFallbackChest();
-        world.chest = chest;
+      } catch (error) {
+        console.warn(
+          "寶箱模型載入失敗：",
+          error
+        );
+
+        world.chest =
+          createFallbackChest();
       }
     }
 
     function createFallbackChest() {
-      const group = new THREE.Group();
+      const group =
+        new THREE.Group();
 
-      const woodMaterial = new THREE.MeshStandardMaterial({
-        color: 0x754223,
-        roughness: 0.82
-      });
+      const woodMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x724222,
+          roughness: 0.84
+        });
 
-      const metalMaterial = new THREE.MeshStandardMaterial({
-        color: 0xd2a541,
-        metalness: 0.55,
-        roughness: 0.38
-      });
+      const metalMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0xc99e43,
+          metalness: 0.48,
+          roughness: 0.4
+        });
 
-      const base = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 1.05, 1.25),
-        woodMaterial
-      );
+      const base =
+        new THREE.Mesh(
+          new THREE.BoxGeometry(
+            2,
+            1.04,
+            1.25
+          ),
+          woodMaterial
+        );
 
       base.position.y = 0.52;
       base.castShadow = true;
+
       group.add(base);
 
-      const lid = new THREE.Mesh(
-        new THREE.BoxGeometry(2.06, 0.5, 1.3),
-        woodMaterial
-      );
+      const lid =
+        new THREE.Mesh(
+          new THREE.BoxGeometry(
+            2.04,
+            0.5,
+            1.29
+          ),
+          woodMaterial
+        );
+
+      lid.name =
+        "fallback-chest-lid";
 
       lid.position.y = 1.3;
       lid.castShadow = true;
-      lid.name = "fallback-chest-lid";
 
       group.add(lid);
 
-      const lock = new THREE.Mesh(
-        new THREE.BoxGeometry(0.35, 0.55, 0.12),
-        metalMaterial
+      const lock =
+        new THREE.Mesh(
+          new THREE.BoxGeometry(
+            0.34,
+            0.54,
+            0.13
+          ),
+          metalMaterial
+        );
+
+      lock.position.set(
+        0,
+        0.86,
+        0.67
       );
 
-      lock.position.set(0, 0.85, 0.68);
       lock.castShadow = true;
 
       group.add(lock);
 
-      group.position.set(0, 2.2, -4);
-      group.userData.interactionType = "chest";
-      group.userData.interactionLabel = "開啟寶箱";
+      group.position.set(
+        0,
+        2.2,
+        -4.2
+      );
+
+      group.userData.type =
+        "chest";
 
       scene.add(group);
 
@@ -968,103 +2038,175 @@
     }
 
     async function createBarrels() {
-      const positions = [
-        new THREE.Vector3(-4, 2.2, -2.5),
-        new THREE.Vector3(-5.2, 2.2, -1.6),
-        new THREE.Vector3(4.8, 2.2, -1)
+      const barrelPositions = [
+        new THREE.Vector3(
+          -4.3,
+          2.18,
+          -2.2
+        ),
+
+        new THREE.Vector3(
+          -5.3,
+          2.18,
+          -1.2
+        ),
+
+        new THREE.Vector3(
+          4.7,
+          2.18,
+          -1.1
+        )
       ];
 
-      for (const position of positions) {
+      for (
+        const position of barrelPositions
+      ) {
         try {
-          await loadModel("barrel.glb", {
-            position,
-            rotationY: Math.random() * Math.PI,
-            scale: 1.45
-          });
+          await loadModel(
+            "barrel.glb",
+            {
+              position,
+
+              rotationY:
+                Math.random() *
+                Math.PI *
+                2,
+
+              scale: 1.4
+            }
+          );
         } catch {
-          createFallbackBarrel(position);
+          createFallbackBarrel(
+            position
+          );
         }
       }
     }
 
-    function createFallbackBarrel(position) {
-      const material = new THREE.MeshStandardMaterial({
-        color: 0x764525,
-        roughness: 0.85
-      });
+    function createFallbackBarrel(
+      position
+    ) {
+      const barrel =
+        new THREE.Mesh(
+          new THREE.CylinderGeometry(
+            0.58,
+            0.67,
+            1.42,
+            12
+          ),
+          new THREE.MeshStandardMaterial({
+            color: 0x754525,
+            roughness: 0.86
+          })
+        );
 
-      const barrel = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.58, 0.68, 1.45, 12),
-        material
+      barrel.position.copy(
+        position
       );
 
-      barrel.position.copy(position);
       barrel.position.y += 0.7;
+
       barrel.castShadow = true;
+      barrel.receiveShadow = true;
 
       scene.add(barrel);
     }
 
     async function createShip() {
       try {
-        const ship = await loadModel(
-          "ship-pirate-small.glb",
-          {
-            position: new THREE.Vector3(25, -0.2, -10),
-            rotationY: -Math.PI / 2.5,
-            scale: 2.1
-          }
-        );
+        const ship =
+          await loadModel(
+            "ship-pirate-small.glb",
+            {
+              position:
+                new THREE.Vector3(
+                  25,
+                  -0.22,
+                  -10
+                ),
+
+              rotationY:
+                -Math.PI / 2.5,
+
+              scale: 2.1
+            }
+          );
 
         world.ship = ship;
       } catch {
-        const fallbackShip = new THREE.Mesh(
-          new THREE.BoxGeometry(8, 2, 3),
-          new THREE.MeshStandardMaterial({
-            color: 0x633719,
-            roughness: 0.86
-          })
+        const fallbackShip =
+          new THREE.Mesh(
+            new THREE.BoxGeometry(
+              8,
+              2,
+              3
+            ),
+            new THREE.MeshStandardMaterial({
+              color: 0x603719,
+              roughness: 0.86
+            })
+          );
+
+        fallbackShip.position.set(
+          25,
+          0.25,
+          -10
         );
 
-        fallbackShip.position.set(25, 0.25, -10);
-        fallbackShip.rotation.y = -Math.PI / 2.5;
+        fallbackShip.rotation.y =
+          -Math.PI / 2.5;
+
         fallbackShip.castShadow = true;
 
         scene.add(fallbackShip);
-        world.ship = fallbackShip;
+
+        world.ship =
+          fallbackShip;
       }
     }
 
-    /* =========================================================
-       輸入控制
-    ========================================================= */
+    /* ==================================================
+       鍵盤
+    ================================================== */
 
-    function setKeyboardState(code, isPressed) {
+    function setKeyboardState(
+      code,
+      isPressed
+    ) {
+      if (!state.inputEnabled) {
+        return;
+      }
+
       switch (code) {
         case "KeyW":
         case "ArrowUp":
-          input.forward = isPressed;
+          input.forward =
+            isPressed;
           break;
 
         case "KeyS":
         case "ArrowDown":
-          input.backward = isPressed;
+          input.backward =
+            isPressed;
           break;
 
         case "KeyA":
         case "ArrowLeft":
-          input.left = isPressed;
+          input.left =
+            isPressed;
           break;
 
         case "KeyD":
         case "ArrowRight":
-          input.right = isPressed;
+          input.right =
+            isPressed;
           break;
 
         case "KeyE":
         case "Space":
           if (isPressed) {
-            input.interactRequested = true;
+            input.interactionRequested =
+              true;
           }
           break;
 
@@ -1073,9 +2215,10 @@
       }
     }
 
-    window.addEventListener("keydown", (event) => {
-      if (
-        [
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        const controlledKeys = [
           "KeyW",
           "KeyA",
           "KeyS",
@@ -1086,55 +2229,116 @@
           "ArrowRight",
           "KeyE",
           "Space"
-        ].includes(event.code)
-      ) {
-        event.preventDefault();
+        ];
+
+        if (
+          controlledKeys.includes(
+            event.code
+          )
+        ) {
+          event.preventDefault();
+        }
+
+        setKeyboardState(
+          event.code,
+          true
+        );
       }
+    );
 
-      setKeyboardState(event.code, true);
-    });
+    window.addEventListener(
+      "keyup",
+      (event) => {
+        setKeyboardState(
+          event.code,
+          false
+        );
+      }
+    );
 
-    window.addEventListener("keyup", (event) => {
-      setKeyboardState(event.code, false);
-    });
+    window.addEventListener(
+      "blur",
+      resetInput
+    );
 
-    window.addEventListener("blur", () => {
+    function resetInput() {
       input.forward = false;
       input.backward = false;
       input.left = false;
       input.right = false;
+
       input.joystickX = 0;
       input.joystickY = 0;
 
       resetJoystickVisual();
-    });
+    }
 
-    /* =========================================================
+    /* ==================================================
        虛擬搖桿
-    ========================================================= */
+    ================================================== */
 
     let joystickPointerId = null;
 
     function updateJoystick(event) {
-      const rect = joystickArea.getBoundingClientRect();
+      if (!state.inputEnabled) {
+        return;
+      }
 
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+      const rect =
+        joystickZone.getBoundingClientRect();
 
-      const deltaX = event.clientX - centerX;
-      const deltaY = event.clientY - centerY;
+      const centerX =
+        rect.left +
+        rect.width / 2;
 
-      const maxDistance = rect.width * 0.28;
-      const distance = Math.hypot(deltaX, deltaY);
+      const centerY =
+        rect.top +
+        rect.height / 2;
 
-      const limitedDistance = Math.min(distance, maxDistance);
-      const angle = Math.atan2(deltaY, deltaX);
+      const deltaX =
+        event.clientX -
+        centerX;
 
-      const limitedX = Math.cos(angle) * limitedDistance;
-      const limitedY = Math.sin(angle) * limitedDistance;
+      const deltaY =
+        event.clientY -
+        centerY;
 
-      input.joystickX = limitedX / maxDistance;
-      input.joystickY = limitedY / maxDistance;
+      const maxDistance =
+        rect.width * 0.28;
+
+      const distance =
+        Math.hypot(
+          deltaX,
+          deltaY
+        );
+
+      const limitedDistance =
+        Math.min(
+          distance,
+          maxDistance
+        );
+
+      const angle =
+        Math.atan2(
+          deltaY,
+          deltaX
+        );
+
+      const limitedX =
+        Math.cos(angle) *
+        limitedDistance;
+
+      const limitedY =
+        Math.sin(angle) *
+        limitedDistance;
+
+      input.joystickX =
+        limitedX /
+        maxDistance;
+
+      input.joystickY =
+        limitedY /
+        maxDistance;
 
       joystickStick.style.transform =
         `translate(
@@ -1151,7 +2355,8 @@
     function releaseJoystick(event) {
       if (
         joystickPointerId !== null &&
-        event.pointerId !== joystickPointerId
+        event.pointerId !==
+          joystickPointerId
       ) {
         return;
       }
@@ -1164,67 +2369,162 @@
       resetJoystickVisual();
     }
 
-    joystickArea.addEventListener(
+    joystickZone.addEventListener(
       "pointerdown",
       (event) => {
-        event.preventDefault();
-
-        joystickPointerId = event.pointerId;
-        joystickArea.setPointerCapture(event.pointerId);
-
-        updateJoystick(event);
-      }
-    );
-
-    joystickArea.addEventListener(
-      "pointermove",
-      (event) => {
-        if (event.pointerId !== joystickPointerId) {
+        if (!state.inputEnabled) {
           return;
         }
 
         event.preventDefault();
+
+        joystickPointerId =
+          event.pointerId;
+
+        joystickZone.setPointerCapture(
+          event.pointerId
+        );
+
         updateJoystick(event);
       }
     );
 
-    joystickArea.addEventListener(
-      "pointerup",
-      releaseJoystick
-    );
-
-    joystickArea.addEventListener(
-      "pointercancel",
-      releaseJoystick
-    );
-
-    actionButton.addEventListener(
-      "pointerdown",
+    joystickZone.addEventListener(
+      "pointermove",
       (event) => {
+        if (
+          event.pointerId !==
+          joystickPointerId
+        ) {
+          return;
+        }
+
         event.preventDefault();
 
-        actionButton.classList.add("pressed");
-        input.interactRequested = true;
+        updateJoystick(event);
       }
     );
 
-    actionButton.addEventListener(
+    joystickZone.addEventListener(
+      "pointerup",
+      releaseJoystick
+    );
+
+    joystickZone.addEventListener(
+      "pointercancel",
+      releaseJoystick
+    );
+
+    interactionButton.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (!state.inputEnabled) {
+          return;
+        }
+
+        event.preventDefault();
+
+        interactionButton.classList.add(
+          "pressed"
+        );
+
+        input.interactionRequested =
+          true;
+      }
+    );
+
+    interactionButton.addEventListener(
       "pointerup",
       () => {
-        actionButton.classList.remove("pressed");
+        interactionButton.classList.remove(
+          "pressed"
+        );
       }
     );
 
-    actionButton.addEventListener(
+    interactionButton.addEventListener(
       "pointercancel",
       () => {
-        actionButton.classList.remove("pressed");
+        interactionButton.classList.remove(
+          "pressed"
+        );
       }
     );
 
-    /* =========================================================
-       玩家移動與互動
-    ========================================================= */
+    /* ==================================================
+       開始流程
+    ================================================== */
+
+    startGameButton.addEventListener(
+      "click",
+      startGame
+    );
+
+    function startGame() {
+      if (
+        !state.assetsReady ||
+        state.gameStarted
+      ) {
+        return;
+      }
+
+      state.gameStarted = true;
+
+      startGameButton.disabled = true;
+
+      loadingPage.classList.add(
+        "hidden"
+      );
+
+      window.setTimeout(() => {
+        showStageIntro();
+      }, 420);
+    }
+
+    function showStageIntro() {
+      stageIntro.classList.add(
+        "visible"
+      );
+
+      window.setTimeout(() => {
+        stageIntro.classList.add(
+          "fade-out"
+        );
+      }, 1500);
+
+      window.setTimeout(() => {
+        stageIntro.classList.remove(
+          "visible",
+          "fade-out"
+        );
+
+        enableGameplay();
+      }, 2050);
+    }
+
+    function enableGameplay() {
+      state.inputEnabled = true;
+
+      hud.classList.add("visible");
+
+      if (isTouchDevice()) {
+        touchControls.classList.add(
+          "visible"
+        );
+      }
+
+      window.setTimeout(() => {
+        missionPanel.classList.add(
+          "visible"
+        );
+      }, 180);
+
+      canvas.focus();
+    }
+
+    /* ==================================================
+       玩家移動
+    ================================================== */
 
     function getMovementInput() {
       let x = 0;
@@ -1249,7 +2549,11 @@
       x += input.joystickX;
       z += input.joystickY;
 
-      const movement = new THREE.Vector2(x, z);
+      const movement =
+        new THREE.Vector2(
+          x,
+          z
+        );
 
       if (movement.length() > 1) {
         movement.normalize();
@@ -1259,131 +2563,207 @@
     }
 
     function updatePlayer(deltaTime) {
-      if (!world.player) {
+      if (
+        !world.player ||
+        !state.inputEnabled
+      ) {
         return;
       }
 
-      const movement = getMovementInput();
-      const movementStrength = movement.length();
+      const movement =
+        getMovementInput();
 
-      if (movementStrength > 0.04) {
-        const moveSpeed = 7.2;
+      const strength =
+        movement.length();
 
+      if (strength > 0.04) {
         world.player.position.x +=
-          movement.x * moveSpeed * deltaTime;
+          movement.x *
+          PLAYER_SPEED *
+          deltaTime;
 
         world.player.position.z +=
-          movement.y * moveSpeed * deltaTime;
+          movement.y *
+          PLAYER_SPEED *
+          deltaTime;
 
-        const targetRotation = Math.atan2(
-          movement.x,
-          movement.y
-        );
+        const targetRotation =
+          Math.atan2(
+            movement.x,
+            movement.y
+          );
 
-        world.player.rotation.y = lerpAngle(
-          world.player.rotation.y,
-          targetRotation,
-          Math.min(1, deltaTime * 12)
-        );
+        world.player.rotation.y =
+          lerpAngle(
+            world.player.rotation.y,
+            targetRotation,
+            Math.min(
+              1,
+              deltaTime * 12
+            )
+          );
 
-        const walkBounce =
-          Math.sin(clock.elapsedTime * 11) * 0.07;
-
-        world.player.position.y = 2.15 + walkBounce;
+        world.player.position.y =
+          PLAYER_BASE_Y +
+          Math.sin(
+            clock.elapsedTime * 11
+          ) *
+          0.07;
       } else {
-        world.player.position.y = THREE.MathUtils.lerp(
-          world.player.position.y,
-          2.15,
-          Math.min(1, deltaTime * 10)
-        );
+        world.player.position.y =
+          THREE.MathUtils.lerp(
+            world.player.position.y,
+            PLAYER_BASE_Y,
+            Math.min(
+              1,
+              deltaTime * 10
+            )
+          );
       }
 
       constrainPlayerToIsland();
     }
 
     function constrainPlayerToIsland() {
-      const x = world.player.position.x;
-      const z = world.player.position.z;
+      const x =
+        world.player.position.x;
+
+      const z =
+        world.player.position.z;
 
       const normalizedDistance =
         Math.sqrt(
-          (x * x) / (14.8 * 14.8) +
-          (z * z) / (10.6 * 10.6)
+          (x * x) /
+            (14.7 * 14.7) +
+          (z * z) /
+            (10.5 * 10.5)
         );
 
-      if (normalizedDistance <= 1) {
+      if (
+        normalizedDistance <= 1
+      ) {
         return;
       }
 
-      world.player.position.x /= normalizedDistance;
-      world.player.position.z /= normalizedDistance;
+      world.player.position.x /=
+        normalizedDistance;
+
+      world.player.position.z /=
+        normalizedDistance;
     }
 
-    function lerpAngle(current, target, amount) {
+    function lerpAngle(
+      current,
+      target,
+      amount
+    ) {
       let difference =
-        ((target - current + Math.PI) %
-          (Math.PI * 2)) -
+        (
+          target -
+          current +
+          Math.PI
+        ) %
+        (Math.PI * 2) -
         Math.PI;
 
-      if (difference < -Math.PI) {
-        difference += Math.PI * 2;
+      if (
+        difference <
+        -Math.PI
+      ) {
+        difference +=
+          Math.PI * 2;
       }
 
-      return current + difference * amount;
+      return (
+        current +
+        difference * amount
+      );
     }
 
+    /* ==================================================
+       互動
+    ================================================== */
+
     function updateInteraction() {
-      if (!world.player || !world.chest) {
-        interactionPrompt.classList.remove("visible");
+      if (
+        !state.inputEnabled ||
+        !world.player ||
+        !world.chest
+      ) {
+        interactionPrompt.classList.remove(
+          "visible"
+        );
+
         return;
       }
 
-      const distance = world.player.position.distanceTo(
-        world.chest.position
-      );
+      const distance =
+        world.player.position.distanceTo(
+          world.chest.position
+        );
 
-      if (distance <= interactionDistance) {
-        world.currentInteractable = world.chest;
+      if (
+        distance <=
+        INTERACTION_DISTANCE
+      ) {
+        state.currentInteractable =
+          world.chest;
 
         interactionPrompt.textContent =
-          isMobileDevice()
+          isTouchDevice()
             ? "點擊互動按鈕"
             : "按 E 開啟寶箱";
 
-        interactionPrompt.classList.add("visible");
+        interactionPrompt.classList.add(
+          "visible"
+        );
       } else {
-        world.currentInteractable = null;
-        interactionPrompt.classList.remove("visible");
+        state.currentInteractable =
+          null;
+
+        interactionPrompt.classList.remove(
+          "visible"
+        );
       }
 
-      if (input.interactRequested) {
-        input.interactRequested = false;
+      if (
+        input.interactionRequested
+      ) {
+        input.interactionRequested =
+          false;
 
-        if (world.currentInteractable) {
+        if (
+          state.currentInteractable
+        ) {
           interactWithCurrentObject();
         } else {
-          showMessage("附近沒有可以互動的物件");
+          showToast(
+            "附近沒有可以互動的物件"
+          );
         }
       }
     }
 
     function interactWithCurrentObject() {
-      const interactable = world.currentInteractable;
-
       if (
-        interactable.userData.interactionType === "chest"
+        state.currentInteractable
+          .userData.type ===
+        "chest"
       ) {
         openChest();
       }
     }
 
     function openChest() {
-      if (!world.chestClosed) {
-        showMessage("寶箱已經打開了");
+      if (state.chestOpened) {
+        showToast(
+          "寶箱已經打開了"
+        );
+
         return;
       }
 
-      world.chestClosed = false;
+      state.chestOpened = true;
 
       const fallbackLid =
         world.chest.getObjectByName(
@@ -1391,149 +2771,183 @@
         );
 
       if (fallbackLid) {
-        fallbackLid.rotation.x = -Math.PI * 0.6;
-        fallbackLid.position.z = -0.28;
+        fallbackLid.rotation.x =
+          -Math.PI * 0.58;
+
+        fallbackLid.position.z =
+          -0.28;
       } else {
-        world.chest.rotation.y += 0.08;
-        world.chest.scale.multiplyScalar(1.08);
+        world.chest.rotation.y +=
+          0.08;
+
+        world.chest.scale.multiplyScalar(
+          1.06
+        );
       }
 
-      objectiveElement.textContent =
-        "目標完成：你取得了海盜寶藏";
+      missionText.textContent =
+        "任務完成：取得失落寶藏";
 
-      showMessage("獲得寶藏：古老金幣 × 100");
+      showToast(
+        "獲得古老金幣 × 100"
+      );
     }
 
-    function showMessage(text) {
-      messageElement.textContent = text;
-      messageElement.classList.add("visible");
+    function showToast(text) {
+      toastMessage.textContent =
+        text;
 
-      window.clearTimeout(messageTimer);
+      toastMessage.classList.add(
+        "visible"
+      );
 
-      messageTimer = window.setTimeout(() => {
-        messageElement.classList.remove("visible");
-      }, 2200);
+      window.clearTimeout(
+        state.toastTimer
+      );
+
+      state.toastTimer =
+        window.setTimeout(() => {
+          toastMessage.classList.remove(
+            "visible"
+          );
+        }, 2200);
     }
 
-    function isMobileDevice() {
-      return window.matchMedia(
-        "(pointer: coarse), (max-width: 900px)"
-      ).matches;
-    }
-
-    /* =========================================================
+    /* ==================================================
        攝影機
-    ========================================================= */
+    ================================================== */
 
     function updateCamera(deltaTime) {
       if (!world.player) {
         return;
       }
 
-      const targetPosition = new THREE.Vector3(
-        world.player.position.x + 15,
-        19,
-        world.player.position.z + 20
-      );
+      const targetPosition =
+        new THREE.Vector3(
+          world.player.position.x + 15,
+          19,
+          world.player.position.z + 20
+        );
 
       camera.position.lerp(
         targetPosition,
-        Math.min(1, deltaTime * 3.4)
+        Math.min(
+          1,
+          deltaTime * 3.4
+        )
       );
 
-      const lookTarget = new THREE.Vector3(
-        world.player.position.x,
-        2.3,
-        world.player.position.z - 1.8
+      camera.lookAt(
+        new THREE.Vector3(
+          world.player.position.x,
+          2.3,
+          world.player.position.z - 1.8
+        )
       );
-
-      camera.lookAt(lookTarget);
     }
 
-    /* =========================================================
+    /* ==================================================
        環境動畫
-    ========================================================= */
+    ================================================== */
 
     function updateEnvironment() {
       if (world.water) {
-        const pulse =
-          Math.sin(clock.elapsedTime * 0.7) * 0.025;
-
-        world.water.position.y = -0.65 + pulse;
+        world.water.position.y =
+          -0.68 +
+          Math.sin(
+            clock.elapsedTime * 0.7
+          ) *
+          0.025;
       }
 
       if (world.ship) {
         world.ship.position.y =
-          -0.2 +
-          Math.sin(clock.elapsedTime * 1.15) * 0.16;
+          -0.22 +
+          Math.sin(
+            clock.elapsedTime * 1.15
+          ) *
+          0.16;
 
         world.ship.rotation.z =
-          Math.sin(clock.elapsedTime * 0.8) * 0.018;
+          Math.sin(
+            clock.elapsedTime * 0.8
+          ) *
+          0.018;
       }
     }
 
-    /* =========================================================
-       載入
-    ========================================================= */
-
-    function setLoadingProgress(percent, text) {
-      loadingProgress.style.width = `${percent}%`;
-      loadingText.textContent = text;
-    }
+    /* ==================================================
+       初始化
+    ================================================== */
 
     async function initializeGame() {
-      setLoadingProgress(10, "建立光源……");
+      setLoadingProgress(
+        5,
+        "正在建立海上環境……"
+      );
+
       createLights();
-
-      setLoadingProgress(24, "建立海洋……");
       createWater();
-
-      setLoadingProgress(38, "建立島嶼……");
       createIsland();
-
-      setLoadingProgress(50, "建立玩家……");
       createPlayer();
 
-      setLoadingProgress(64, "載入寶箱……");
-      await createChest();
+      setLoadingProgress(
+        18,
+        "正在準備島嶼……"
+      );
 
-      setLoadingProgress(76, "載入場景道具……");
-      await createBarrels();
+      await Promise.allSettled([
+        createChest(),
+        createBarrels(),
+        createShip()
+      ]);
 
-      setLoadingProgress(88, "載入海盜船……");
-      await createShip();
-
-      setLoadingProgress(100, "完成");
-
+      /*
+        若所有模型載入都失敗，
+        LoadingManager 的 onLoad 仍可能不觸發。
+        因此保留手動完成保護。
+      */
       window.setTimeout(() => {
-        loadingScreen.classList.add("hidden");
-        canvas.focus();
-      }, 350);
+        completeLoading();
+      }, 250);
     }
 
-    /* =========================================================
+    initializeGame().catch(
+      (error) => {
+        console.error(
+          "遊戲初始化失敗：",
+          error
+        );
+
+        completeLoading();
+      }
+    );
+
+    /* ==================================================
        主迴圈
-    ========================================================= */
+    ================================================== */
 
     function animate() {
-      requestAnimationFrame(animate);
+      requestAnimationFrame(
+        animate
+      );
 
-      const deltaTime = Math.min(clock.getDelta(), 0.05);
+      const deltaTime =
+        Math.min(
+          clock.getDelta(),
+          0.05
+        );
 
       updatePlayer(deltaTime);
       updateInteraction();
       updateCamera(deltaTime);
       updateEnvironment();
 
-      renderer.render(scene, camera);
+      renderer.render(
+        scene,
+        camera
+      );
     }
-
-    initializeGame().catch((error) => {
-      console.error("遊戲初始化失敗：", error);
-
-      loadingText.textContent =
-        "部分模型載入失敗，將使用暫代模型";
-    });
 
     animate();
   </script>
