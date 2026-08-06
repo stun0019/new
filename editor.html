@@ -2,514 +2,148 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Pirate Adventure V0.4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Pirate Character Editor V0.2</title>
   <style>
-    :root {
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-right: env(safe-area-inset-right, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-left: env(safe-area-inset-left, 0px);
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html,body { width:100%; height:100%; overflow:hidden; background:#091018; color:#fff; font-family:Arial,"Microsoft JhengHei",sans-serif; }
+    body { display:grid; grid-template-columns:minmax(0,1fr) 390px; }
+    button,input,select { font:inherit; }
+    #viewport {
+      position:relative;
+      min-width:0;
+      overflow:hidden;
+      background:radial-gradient(circle at 50% 32%,#2a4353 0%,#142430 48%,#081018 100%);
     }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
+    #viewport canvas { display:block; width:100%; height:100%; }
+    #topbar {
+      position:absolute; top:14px; left:14px; right:14px; z-index:20;
+      display:flex; justify-content:space-between; align-items:flex-start; gap:10px; pointer-events:none;
     }
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #071018;
-      touch-action: none;
-      overscroll-behavior: none;
-      font-family: Arial, "Microsoft JhengHei", sans-serif;
+    .toolbar-group { display:flex; flex-wrap:wrap; gap:8px; pointer-events:auto; }
+    .toolbar-button,.back-link {
+      padding:9px 13px; border:1px solid rgba(255,255,255,.18); border-radius:8px;
+      color:#fff; background:rgba(12,24,34,.82); text-decoration:none; cursor:pointer; backdrop-filter:blur(8px);
     }
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .toolbar-button:hover,.back-link:hover { border-color:rgba(255,255,255,.45); background:rgba(29,46,59,.94); }
+    .back-link { background:rgba(112,54,34,.86); }
+    #hint {
+      position:absolute; left:50%; bottom:14px; z-index:20; transform:translateX(-50%);
+      padding:7px 12px; border-radius:999px; color:rgba(255,255,255,.58);
+      background:rgba(4,10,15,.58); font-size:12px; white-space:nowrap;
     }
-    button { font: inherit; }
-    #game-wrapper {
-      position: relative;
-      width: min(100vw, calc(100vh * 16 / 9));
-      height: min(100vh, calc(100vw * 9 / 16));
-      max-width: 1280px;
-      max-height: 720px;
-      overflow: hidden;
-      background: #0e2933;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 28px 80px rgba(0,0,0,.48);
+    #panel {
+      height:100%; overflow-y:auto; padding:18px; background:#111a23; border-left:1px solid rgba(255,255,255,.08);
     }
-    #game-canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      outline: none;
+    h1 { font-size:22px; margin-bottom:5px; }
+    .subtitle { color:rgba(255,255,255,.56); font-size:13px; line-height:1.55; margin-bottom:16px; }
+    .section { margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,.08); }
+    .section h2 { color:#e7c77d; font-size:14px; letter-spacing:1px; margin-bottom:12px; }
+    .preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .preset-button,.action-button {
+      padding:10px; border:1px solid rgba(255,255,255,.14); border-radius:8px; color:#fff; background:#223440; cursor:pointer;
     }
-    #debug-editor-button {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      z-index: 950;
-      padding: 8px 12px;
-      border: 1px solid rgba(255,255,255,.22);
-      border-radius: 7px;
-      color: rgba(255,255,255,.88);
-      background: rgba(10,20,28,.72);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      cursor: pointer;
-      backdrop-filter: blur(7px);
+    .preset-button:hover,.action-button:hover { border-color:rgba(255,255,255,.38); }
+    .field {
+      display:grid; grid-template-columns:118px minmax(0,1fr) 48px; align-items:center; gap:9px; margin-bottom:10px;
     }
-    #debug-editor-button:hover {
-      border-color: rgba(255,255,255,.55);
-      background: rgba(31,51,64,.94);
-    }
-    #orientation-screen,
-    #loading-page,
-    #stage-intro,
-    #complete-screen {
-      position: absolute;
-      inset: 0;
-    }
-    #orientation-screen {
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      background: radial-gradient(circle at center, #173442 0%, #071018 74%);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity .55s ease, visibility .55s ease;
-    }
-    #orientation-screen.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-    .orientation-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      padding: 28px;
-      text-align: center;
-    }
-    .phone-rotate-icon {
-      position: relative;
-      width: 70px;
-      height: 116px;
-      border: 4px solid rgba(255,255,255,.92);
-      border-radius: 14px;
-      animation: phoneRotate 2.2s ease-in-out infinite;
-    }
-    .phone-rotate-icon::after {
-      content: "↻";
-      position: absolute;
-      top: 50%;
-      left: 100%;
-      margin-left: 18px;
-      font-size: 44px;
-      transform: translateY(-50%);
-    }
-    .orientation-title { font-size: clamp(24px,6vw,38px); font-weight: 800; }
-    .orientation-subtitle { margin-top: 9px; color: rgba(255,255,255,.66); }
-    @keyframes phoneRotate {
-      0%,100% { transform: rotate(-18deg); }
-      50% { transform: rotate(72deg); }
-    }
-    #loading-page {
-      z-index: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background:
-        radial-gradient(circle at 50% 40%, rgba(46,92,104,.68) 0%, rgba(11,28,36,.98) 50%, #060d13 100%);
-      transition: opacity .75s ease, visibility .75s ease;
-    }
-    #loading-page.hidden {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    #loading-page::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      opacity: .12;
-      background-image:
-        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-      background-size: 48px 48px;
-      animation: gridMove 10s linear infinite;
-    }
-    @keyframes gridMove { to { background-position: 48px 48px; } }
-    .loading-content {
-      position: relative;
-      z-index: 2;
-      width: min(78%,560px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-    }
-    .game-logo { margin-bottom: 48px; }
-    .logo-main {
-      display: block;
-      color: #f7f5ed;
-      font-size: clamp(42px,7vw,86px);
-      font-weight: 900;
-      letter-spacing: clamp(6px,1.1vw,14px);
-      text-shadow: 0 4px 0 rgba(0,0,0,.42), 0 14px 32px rgba(0,0,0,.62);
-    }
-    .logo-sub {
-      display: block;
-      margin-top: 5px;
-      color: rgba(214,222,220,.72);
-      font-size: clamp(13px,1.8vw,22px);
-      font-weight: 700;
-      letter-spacing: clamp(8px,1.5vw,18px);
-    }
-    #loading-status {
-      width: 100%;
-      transition: opacity .4s ease, transform .4s ease;
-    }
-    #loading-status.hidden {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    .loading-text {
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: space-between;
-      color: rgba(255,255,255,.78);
-      font-size: clamp(13px,1.8vw,18px);
-    }
-    #progress-track {
-      width: 100%;
-      height: clamp(12px,1.7vw,18px);
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,.24);
-      border-radius: 999px;
-      background: rgba(0,0,0,.36);
-    }
-    #progress-bar {
-      width: 0%;
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg,#b48a45,#f0d78a,#bd9149);
-      transition: width .12s linear;
-    }
-    #start-game-button {
-      position: absolute;
-      top: calc(100% - 68px);
-      min-width: 220px;
-      padding: 15px 34px;
-      border: 1px solid rgba(255,255,255,.42);
-      border-radius: 8px;
-      color: #fff;
-      background: linear-gradient(180deg,rgba(178,135,69,.97),rgba(92,61,31,.99));
-      font-size: clamp(17px,2.2vw,24px);
-      font-weight: 800;
-      letter-spacing: 3px;
-      cursor: pointer;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(16px);
-      transition: .6s ease;
-    }
-    #start-game-button.visible {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-    #stage-intro {
-      z-index: 600;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      background: rgba(0,0,0,.58);
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity .45s ease, visibility .45s ease;
-    }
-    #stage-intro.visible { opacity: 1; visibility: visible; }
-    #stage-intro.fade-out { opacity: 0; }
-    #stage-intro-title {
-      font-size: clamp(44px,7vw,88px);
-      font-weight: 900;
-      letter-spacing: clamp(7px,1.5vw,18px);
-    }
-    #stage-intro-subtitle {
-      margin-top: 10px;
-      color: rgba(255,255,255,.74);
-      font-size: clamp(18px,2.6vw,32px);
-      font-weight: 700;
-      letter-spacing: 5px;
-    }
-    #hud {
-      position: absolute;
-      inset: 0;
-      z-index: 100;
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: .45s ease;
-    }
-    #hud.visible { opacity: 1; visibility: visible; }
-    #mission-panel {
-      position: absolute;
-      top: 22px;
-      left: 24px;
-      max-width: 420px;
-      padding: 13px 17px;
-      border-left: 4px solid rgba(235,196,105,.92);
-      color: #fff;
-      background: linear-gradient(90deg,rgba(5,18,25,.82),rgba(5,18,25,.28));
-      opacity: 0;
-      transform: translateX(-14px);
-      transition: .5s ease;
-    }
-    #mission-panel.visible { opacity: 1; transform: translateX(0); }
-    #mission-label {
-      margin-bottom: 4px;
-      color: rgba(239,205,122,.94);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 3px;
-    }
-    #mission-text {
-      font-size: clamp(14px,1.6vw,20px);
-      font-weight: 700;
-    }
-    #desktop-help {
-      position: absolute;
-      top: 20px;
-      left: 50%;
-      padding: 9px 15px;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 7px;
-      color: rgba(255,255,255,.7);
-      background: rgba(5,18,25,.5);
-      transform: translateX(-50%);
-      backdrop-filter: blur(6px);
-    }
-    #interaction-prompt {
-      position: absolute;
-      left: 50%;
-      bottom: 56px;
-      min-width: 240px;
-      padding: 12px 20px;
-      border: 1px solid rgba(255,255,255,.22);
-      border-radius: 999px;
-      color: #fff;
-      background: rgba(4,16,23,.82);
-      font-weight: 800;
-      text-align: center;
-      opacity: 0;
-      transform: translateX(-50%) translateY(10px);
-      transition: .18s ease;
-    }
-    #interaction-prompt.visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    #toast-message {
-      position: absolute;
-      left: 50%;
-      top: 98px;
-      max-width: 560px;
-      padding: 13px 22px;
-      border-radius: 9px;
-      color: #fff;
-      background: rgba(4,16,23,.86);
-      font-weight: 800;
-      text-align: center;
-      opacity: 0;
-      transform: translateX(-50%) translateY(-10px);
-      transition: .25s ease;
-    }
-    #toast-message.visible {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-    #touch-controls {
-      position: absolute;
-      inset: 0;
-      z-index: 200;
-      display: none;
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-    #touch-controls.visible { opacity: 1; visibility: visible; }
-    #joystick-zone {
-      position: absolute;
-      left: max(22px, calc(var(--safe-left) + 16px));
-      bottom: max(20px, calc(var(--safe-bottom) + 14px));
-      width: 150px;
-      height: 150px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: auto;
-    }
-    #joystick-base {
-      position: relative;
-      width: 124px;
-      height: 124px;
-      border: 2px solid rgba(255,255,255,.17);
-      border-radius: 50%;
-      background: rgba(4,17,24,.28);
-    }
-    #joystick-stick {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 58px;
-      height: 58px;
-      border: 2px solid rgba(255,255,255,.24);
-      border-radius: 50%;
-      background: radial-gradient(circle at 36% 30%,rgba(255,255,255,.24),rgba(18,47,56,.65));
-      transform: translate(-50%,-50%);
-    }
-    #interaction-button {
-      position: absolute;
-      right: max(34px, calc(var(--safe-right) + 24px));
-      bottom: max(42px, calc(var(--safe-bottom) + 28px));
-      width: 92px;
-      height: 92px;
-      border: 2px solid rgba(255,255,255,.25);
-      border-radius: 50%;
-      color: #fff;
-      background: radial-gradient(circle at 35% 28%,rgba(191,151,79,.88),rgba(73,47,26,.86));
-      font-size: 17px;
-      font-weight: 900;
-      pointer-events: auto;
-    }
-    #complete-screen {
-      z-index: 700;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      background: rgba(3,12,18,.84);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: .55s ease;
-    }
-    #complete-screen.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-    #complete-title {
-      font-size: clamp(42px,7vw,86px);
-      font-weight: 900;
-      letter-spacing: clamp(7px,1.4vw,18px);
-    }
-    #complete-subtitle {
-      margin-top: 14px;
-      color: rgba(255,255,255,.72);
-      font-size: clamp(18px,2.4vw,30px);
-      font-weight: 700;
-    }
-    #restart-button {
-      margin-top: 22px;
-      min-width: 190px;
-      padding: 14px 28px;
-      border: 1px solid rgba(255,255,255,.38);
-      border-radius: 8px;
-      color: #fff;
-      background: linear-gradient(180deg,#b08446,#5b3b22);
-      font-size: 20px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    @media (pointer: coarse), (max-width: 900px) {
-      #touch-controls { display: block; }
-      #desktop-help { display: none; }
-      #mission-panel { top: 15px; left: 17px; max-width: 330px; }
-      #interaction-prompt { bottom: 152px; }
-      #debug-editor-button { top: 10px; right: 10px; }
-    }
-    @media (pointer: fine) and (hover: hover) {
-      #touch-controls { display: none !important; }
+    .field label,.toggle-field label { font-size:13px; color:rgba(255,255,255,.82); }
+    .field output { text-align:right; font-size:12px; color:rgba(255,255,255,.56); }
+    input[type="range"] { width:100%; accent-color:#d4ad58; }
+    input[type="color"] { width:100%; height:32px; border:0; background:transparent; }
+    select { width:100%; padding:9px; border:1px solid rgba(255,255,255,.12); border-radius:7px; color:#fff; background:#192733; }
+    .toggle-field { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .toggle-field input { width:18px; height:18px; accent-color:#d4ad58; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .primary { background:linear-gradient(180deg,#b58a43,#6c4925); }
+    #status { min-height:20px; margin-top:10px; color:#9ed7ae; font-size:12px; }
+    @media(max-width:900px) {
+      body { grid-template-columns:1fr; grid-template-rows:55vh 45vh; }
+      #panel { border-left:0; border-top:1px solid rgba(255,255,255,.08); }
+      .field { grid-template-columns:102px minmax(0,1fr) 44px; }
+      #hint { white-space:normal; width:max-content; max-width:78%; text-align:center; }
     }
   </style>
 </head>
 <body>
-  <main id="game-wrapper">
-    <canvas id="game-canvas" width="1280" height="720" tabindex="0"></canvas>
-    <button id="debug-editor-button" type="button">DEBUG</button>
-
-    <section id="orientation-screen">
-      <div class="orientation-content">
-        <div class="phone-rotate-icon"></div>
-        <div>
-          <div class="orientation-title">請將手機轉為橫向</div>
-          <div class="orientation-subtitle">橫向模式可獲得最佳遊戲體驗</div>
-        </div>
+  <main id="viewport">
+    <div id="topbar">
+      <div class="toolbar-group">
+        <button class="toolbar-button" id="front-view">正面</button>
+        <button class="toolbar-button" id="side-view">側面</button>
+        <button class="toolbar-button" id="back-view">背面</button>
+        <button class="toolbar-button" id="toggle-grid">格線</button>
       </div>
-    </section>
-
-    <section id="loading-page">
-      <div class="loading-content">
-        <div class="game-logo">
-          <span class="logo-main">PIRATE</span>
-          <span class="logo-sub">ADVENTURE</span>
-        </div>
-        <div id="loading-status">
-          <div class="loading-text">
-            <span id="loading-message">正在確認航行路線……</span>
-            <span id="progress-number">0%</span>
-          </div>
-          <div id="progress-track"><div id="progress-bar"></div></div>
-        </div>
-        <button id="start-game-button" type="button">開始冒險</button>
-      </div>
-    </section>
-
-    <section id="stage-intro">
-      <div id="stage-intro-title">CHAPTER 1</div>
-      <div id="stage-intro-subtitle">寶藏島</div>
-    </section>
-
-    <section id="hud">
-      <div id="mission-panel">
-        <div id="mission-label">MISSION 1 / 5</div>
-        <div id="mission-text">調查海岸邊的擱淺船</div>
-      </div>
-      <div id="desktop-help">WASD／方向鍵移動｜E／Space 互動</div>
-      <div id="toast-message"></div>
-      <div id="interaction-prompt">按 E 互動</div>
-    </section>
-
-    <section id="touch-controls">
-      <div id="joystick-zone">
-        <div id="joystick-base"><div id="joystick-stick"></div></div>
-      </div>
-      <button id="interaction-button" type="button">互動</button>
-    </section>
-
-    <section id="complete-screen">
-      <div id="complete-title">CHAPTER COMPLETE</div>
-      <div id="complete-subtitle">寶藏島探索完成</div>
-      <button id="restart-button" type="button">再次遊玩</button>
-    </section>
+      <a class="back-link" href="./index.html">返回遊戲</a>
+    </div>
+    <div id="hint">左鍵旋轉｜滾輪縮放｜右鍵平移</div>
   </main>
+
+  <aside id="panel">
+    <h1>海盜角色編輯器</h1>
+    <div class="subtitle">角色造型已升級為更完整的低多邊形海盜。儲存後，遊戲會優先讀取瀏覽器中的角色設定。</div>
+
+    <section class="section">
+      <h2>快速預設</h2>
+      <div class="preset-grid">
+        <button class="preset-button" data-preset="captain">經典船長</button>
+        <button class="preset-button" data-preset="rogue">黑帆盜賊</button>
+        <button class="preset-button" data-preset="royal">皇家私掠者</button>
+        <button class="preset-button" data-preset="reset">重設預設</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>身體比例</h2>
+      <div class="field"><label>角色高度</label><input id="height" type="range" min=".75" max="1.35" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>身體寬度</label><input id="bodyWidth" type="range" min=".72" max="1.35" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>頭部大小</label><input id="headScale" type="range" min=".75" max="1.45" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>手臂長度</label><input id="armLength" type="range" min=".75" max="1.35" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>腿部長度</label><input id="legLength" type="range" min=".75" max="1.35" step=".01" value="1"><output>1.00</output></div>
+    </section>
+
+    <section class="section">
+      <h2>配件比例</h2>
+      <div class="field"><label>鬍子大小</label><input id="beardScale" type="range" min="0" max="1.5" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>帽子大小</label><input id="hatScale" type="range" min=".7" max="1.4" step=".01" value="1"><output>1.00</output></div>
+      <div class="field"><label>短劍大小</label><input id="swordScale" type="range" min="0" max="1.4" step=".01" value="1"><output>1.00</output></div>
+      <div class="toggle-field"><label>帽子</label><input id="showHat" type="checkbox" checked></div>
+      <div class="toggle-field"><label>鬍子</label><input id="showBeard" type="checkbox" checked></div>
+      <div class="toggle-field"><label>短劍</label><input id="showSword" type="checkbox" checked></div>
+      <div class="toggle-field"><label>眼罩</label><input id="showEyePatch" type="checkbox" checked></div>
+      <div class="toggle-field"><label>耳環</label><input id="showEarring" type="checkbox" checked></div>
+    </section>
+
+    <section class="section">
+      <h2>配色</h2>
+      <div class="field"><label>外套</label><input id="coatColor" type="color" value="#7f2632"><output></output></div>
+      <div class="field"><label>襯衫</label><input id="shirtColor" type="color" value="#efe5d5"><output></output></div>
+      <div class="field"><label>膚色</label><input id="skinColor" type="color" value="#d99a69"><output></output></div>
+      <div class="field"><label>皮革</label><input id="leatherColor" type="color" value="#4b2e20"><output></output></div>
+      <div class="field"><label>帽子</label><input id="hatColor" type="color" value="#17191d"><output></output></div>
+      <div class="field"><label>鬍子</label><input id="beardColor" type="color" value="#3c241b"><output></output></div>
+      <div class="field"><label>金屬／飾帶</label><input id="sashColor" type="color" value="#c69b45"><output></output></div>
+    </section>
+
+    <section class="section">
+      <h2>姿勢預覽</h2>
+      <select id="pose">
+        <option value="idle">待機</option>
+        <option value="walk">走路</option>
+        <option value="interact">互動</option>
+        <option value="victory">勝利</option>
+      </select>
+    </section>
+
+    <div class="actions">
+      <button class="action-button primary" id="save-browser">儲存至遊戲</button>
+      <button class="action-button" id="copy-json">複製 JSON</button>
+      <button class="action-button" id="download-json">下載 JSON</button>
+      <button class="action-button" id="import-json">匯入 JSON</button>
+    </div>
+    <input id="json-file" type="file" accept=".json,application/json" hidden>
+    <div id="status"></div>
+  </aside>
 
   <script type="importmap">
     {
@@ -519,10 +153,9 @@
       }
     }
   </script>
-
   <script type="module">
     import * as THREE from "three";
-    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+    import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
     
 function colorDarken(hex, factor) {
@@ -816,514 +449,222 @@ function createPirateCharacter(config = {}) {
 }
 
 
-    const canvas = document.getElementById("game-canvas");
-    const loadingPage = document.getElementById("loading-page");
-    const loadingStatus = document.getElementById("loading-status");
-    const loadingMessage = document.getElementById("loading-message");
-    const progressNumber = document.getElementById("progress-number");
-    const progressBar = document.getElementById("progress-bar");
-    const startGameButton = document.getElementById("start-game-button");
-    const stageIntro = document.getElementById("stage-intro");
-    const hud = document.getElementById("hud");
-    const missionPanel = document.getElementById("mission-panel");
-    const missionLabel = document.getElementById("mission-label");
-    const missionText = document.getElementById("mission-text");
-    const toastMessage = document.getElementById("toast-message");
-    const interactionPrompt = document.getElementById("interaction-prompt");
-    const touchControls = document.getElementById("touch-controls");
-    const joystickZone = document.getElementById("joystick-zone");
-    const joystickStick = document.getElementById("joystick-stick");
-    const interactionButton = document.getElementById("interaction-button");
-    const completeScreen = document.getElementById("complete-screen");
-
-    document.getElementById("debug-editor-button").addEventListener("click", () => {
-      window.location.href = "./editor.html";
-    });
-    document.getElementById("restart-button").addEventListener("click", () => location.reload());
-
-    const MODEL_BASE_PATH = "./assets/models/pirate/";
-    const PLAYER_BASE_Y = 2.16;
-    const PLAYER_SPEED = 7;
-    const INTERACTION_DISTANCE = 3.5;
-
-    const missions = [
-      { id: "wreck", text: "調查海岸邊的擱淺船", target: "wreck" },
-      { id: "supplies", text: "回收遺失的航海物資", target: "supply", required: 3 },
-      { id: "cannon", text: "使用物資修復岸防砲", target: "cannon" },
-      { id: "chest", text: "找到並開啟船長的寶箱", target: "chest" },
-      { id: "ship", text: "帶著寶藏返回海盜船", target: "ship" }
-    ];
-
-    const state = {
-      assetsReady: false,
-      started: false,
-      inputEnabled: false,
-      missionIndex: 0,
-      supplies: 0,
-      currentInteractable: null,
-      toastTimer: null,
-      interactionTimer: 0,
-      victoryTimer: 0
+    const defaults = {
+      height:1, bodyWidth:1, headScale:1, armLength:1, legLength:1,
+      beardScale:1, hatScale:1, swordScale:1,
+      coatColor:"#7f2632", shirtColor:"#efe5d5", skinColor:"#d99a69",
+      leatherColor:"#4b2e20", hatColor:"#17191d", beardColor:"#3c241b",
+      sashColor:"#c69b45",
+      showHat:true, showBeard:true, showSword:true, showEyePatch:true, showEarring:true,
+      pose:"idle"
     };
 
-    const input = {
-      up: false, down: false, left: false, right: false,
-      joyX: 0, joyY: 0, interact: false
+    const presets = {
+      captain: {...defaults},
+      rogue: {
+        ...defaults, bodyWidth:.94, headScale:.92, beardScale:.55,
+        coatColor:"#253544", shirtColor:"#c9d0d2", leatherColor:"#211a18",
+        hatColor:"#0c0f12", beardColor:"#1b1716", sashColor:"#9c7b42",
+        showEyePatch:true, showEarring:false
+      },
+      royal: {
+        ...defaults, height:1.08, bodyWidth:.92, beardScale:.75,
+        coatColor:"#234f78", shirtColor:"#f4efe1", leatherColor:"#5a3724",
+        hatColor:"#18283c", beardColor:"#5b3a26", sashColor:"#e1bf67",
+        showEyePatch:false, showEarring:true
+      }
     };
 
-    const world = {
-      player: null,
-      water: null,
-      ship: null,
-      interactables: []
-    };
+    let config = (()=>{
+      try {
+        const saved = localStorage.getItem("pirate-character-config");
+        return saved ? {...defaults,...JSON.parse(saved)} : {...defaults};
+      } catch {
+        return {...defaults};
+      }
+    })();
 
+    const viewport = document.getElementById("viewport");
+    const status = document.getElementById("status");
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x79c9dc);
-    scene.fog = new THREE.Fog(0x79c9dc, 38, 110);
+    scene.background = new THREE.Color(0x101b24);
 
-    const camera = new THREE.PerspectiveCamera(46, 1280 / 720, 0.1, 300);
-    camera.position.set(16, 20, 23);
+    const camera = new THREE.PerspectiveCamera(38,1,.1,100);
+    camera.position.set(7.5,5.8,9.5);
 
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-    renderer.setSize(1280, 720, false);
+    const renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
+    viewport.prepend(renderer.domElement);
 
+    const controls = new OrbitControls(camera,renderer.domElement);
+    controls.target.set(0,3.1,0);
+    controls.enableDamping = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 18;
+
+    scene.add(new THREE.HemisphereLight(0xdaf6ff,0x3a342d,2.2));
+    const key = new THREE.DirectionalLight(0xffedc6,3);
+    key.position.set(-5,10,7);
+    key.castShadow = true;
+    scene.add(key);
+    const rim = new THREE.DirectionalLight(0x7fc8ff,1.2);
+    rim.position.set(6,5,-5);
+    scene.add(rim);
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(5.5,48),
+      new THREE.MeshStandardMaterial({color:0x33454a,roughness:.95})
+    );
+    floor.rotation.x = -Math.PI/2;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(12,24,0x78919a,0x42545c);
+    grid.position.y = .01;
+    scene.add(grid);
+
+    let character = null;
     const clock = new THREE.Clock();
-    const loadingManager = new THREE.LoadingManager();
-    const loader = new GLTFLoader(loadingManager);
 
-    loadingManager.onProgress = (url, loaded, total) => {
-      const p = total ? Math.round((loaded / total) * 100) : 0;
-      setProgress(p);
-    };
-    loadingManager.onLoad = completeLoading;
-    loadingManager.onError = url => console.warn("模型載入失敗：", url);
-
-    function setProgress(value, message = null) {
-      const p = THREE.MathUtils.clamp(Math.round(value), 0, 100);
-      progressBar.style.width = `${p}%`;
-      progressNumber.textContent = `${p}%`;
-      if (message) loadingMessage.textContent = message;
+    function rebuild() {
+      if (character) scene.remove(character);
+      character = createPirateCharacter(config);
+      scene.add(character);
     }
 
-    function completeLoading() {
-      if (state.assetsReady) return;
-      state.assetsReady = true;
-      setProgress(100, "準備啟航");
-      setTimeout(() => {
-        loadingStatus.classList.add("hidden");
-        startGameButton.classList.add("visible");
-      }, 350);
-    }
-
-    function createLights() {
-      scene.add(new THREE.HemisphereLight(0xd7f7ff, 0x3a5031, 2.15));
-      const sun = new THREE.DirectionalLight(0xfff1ca, 3.3);
-      sun.position.set(-18, 34, 16);
-      sun.castShadow = true;
-      sun.shadow.mapSize.set(2048, 2048);
-      sun.shadow.camera.left = -38;
-      sun.shadow.camera.right = 38;
-      sun.shadow.camera.top = 38;
-      sun.shadow.camera.bottom = -38;
-      scene.add(sun);
-    }
-
-    function createEnvironment() {
-      const water = new THREE.Mesh(
-        new THREE.PlaneGeometry(220, 220),
-        new THREE.MeshStandardMaterial({ color: 0x168faa, roughness: 0.28, metalness: 0.08 })
-      );
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = -0.68;
-      water.receiveShadow = true;
-      scene.add(water);
-      world.water = water;
-
-      const sand = new THREE.Mesh(
-        new THREE.CylinderGeometry(17.5, 20, 2.2, 48),
-        new THREE.MeshStandardMaterial({ color: 0xe1be72, roughness: 0.94 })
-      );
-      sand.scale.z = 0.74;
-      sand.castShadow = true;
-      sand.receiveShadow = true;
-      scene.add(sand);
-
-      const grass = new THREE.Mesh(
-        new THREE.CylinderGeometry(13.7, 15.4, 1.18, 48),
-        new THREE.MeshStandardMaterial({ color: 0x66a955, roughness: 0.96 })
-      );
-      grass.position.y = 1.62;
-      grass.scale.z = 0.72;
-      grass.castShadow = true;
-      grass.receiveShadow = true;
-      scene.add(grass);
-
-      for (const [x,z,s] of [[-10,-4.8,1],[8.8,6.5,.8],[-5.4,8.4,.65],[6.4,-7.4,.9]]) {
-        const rock = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(1.4, 0),
-          new THREE.MeshStandardMaterial({ color: 0x747e78, roughness: 0.96 })
-        );
-        rock.position.set(x, 2.2, z);
-        rock.scale.set(s, s*.72, s*.9);
-        rock.rotation.set(Math.random(), Math.random(), Math.random());
-        rock.castShadow = true;
-        scene.add(rock);
+    function syncUI() {
+      for (const [key,value] of Object.entries(config)) {
+        const el = document.getElementById(key);
+        if (!el) continue;
+        if (el.type === "checkbox") el.checked = !!value;
+        else el.value = value;
+        const out = el.parentElement?.querySelector("output");
+        if (out && el.type === "range") out.textContent = Number(value).toFixed(2);
       }
     }
 
-    function createPlayer() {
-      const saved = localStorage.getItem("pirate-character-config");
-      let config = {};
-      try { config = saved ? JSON.parse(saved) : {}; } catch {}
-      world.player = createPirateCharacter(config);
-      world.player.position.set(0, PLAYER_BASE_Y, 6);
-      world.player.rotation.y = Math.PI;
-      scene.add(world.player);
-    }
-
-    function configureModel(model) {
-      model.traverse(child => {
-        if (!child.isMesh) return;
-        child.castShadow = true;
-        child.receiveShadow = true;
+    const editableKeys = Object.keys(defaults);
+    for (const key of editableKeys) {
+      const el = document.getElementById(key);
+      if (!el) continue;
+      el.addEventListener("input",()=>{
+        config[key] = el.type === "range" ? Number(el.value) : el.type === "checkbox" ? el.checked : el.value;
+        const out = el.parentElement?.querySelector("output");
+        if (out && el.type === "range") out.textContent = Number(el.value).toFixed(2);
+        rebuild();
       });
     }
 
-    function loadModel(file, position, rotationY = 0, scale = 1) {
-      return new Promise((resolve, reject) => {
-        loader.load(MODEL_BASE_PATH + file, gltf => {
-          const model = gltf.scene;
-          configureModel(model);
-          model.position.copy(position);
-          model.rotation.y = rotationY;
-          model.scale.setScalar(scale);
-          scene.add(model);
-          resolve(model);
-        }, undefined, reject);
+    document.querySelectorAll("[data-preset]").forEach(button=>{
+      button.addEventListener("click",()=>{
+        const name = button.dataset.preset;
+        config = name === "reset" ? {...defaults} : {...presets[name]};
+        syncUI();
+        rebuild();
+        setStatus(`已套用：${button.textContent}`);
       });
-    }
-
-    function fallbackObject(position, color, size) {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshStandardMaterial({color, roughness:.85}));
-      m.position.copy(position);
-      m.castShadow = true;
-      scene.add(m);
-      return m;
-    }
-
-    function markerFor(object) {
-      const marker = new THREE.Group();
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(.75,.07,10,28),
-        new THREE.MeshBasicMaterial({color:0xf2d271,transparent:true,opacity:.8})
-      );
-      ring.rotation.x = Math.PI/2;
-      marker.add(ring);
-      const beam = new THREE.Mesh(
-        new THREE.CylinderGeometry(.08,.25,2.4,10,1,true),
-        new THREE.MeshBasicMaterial({color:0xf2d271,transparent:true,opacity:.2,side:THREE.DoubleSide})
-      );
-      beam.position.y = 1.2;
-      marker.add(beam);
-      marker.visible = false;
-      object.add(marker);
-      object.userData.marker = marker;
-    }
-
-    function register(object, type, label) {
-      object.userData.type = type;
-      object.userData.label = label;
-      object.userData.active = true;
-      markerFor(object);
-      world.interactables.push(object);
-    }
-
-    async function createMissionObjects() {
-      let wreck;
-      try {
-        wreck = await loadModel("ship-wreck.glb", new THREE.Vector3(-11.8,1.3,5.8), .5, 1.55);
-      } catch {
-        wreck = fallbackObject(new THREE.Vector3(-11.8,2.2,5.8),0x6b3b21,[5.5,1.5,2.2]);
-      }
-      register(wreck,"wreck","調查擱淺船");
-
-      for (const p of [new THREE.Vector3(-6,2.2,-2),new THREE.Vector3(5.8,2.2,3.6),new THREE.Vector3(8,2.2,-5.2)]) {
-        let barrel;
-        try { barrel = await loadModel("barrel.glb",p,Math.random()*Math.PI*2,1.4); }
-        catch {
-          barrel = new THREE.Mesh(new THREE.CylinderGeometry(.58,.67,1.42,12),new THREE.MeshStandardMaterial({color:0x754525,roughness:.86}));
-          barrel.position.copy(p);
-          scene.add(barrel);
-        }
-        register(barrel,"supply","回收航海物資");
-      }
-
-      let cannon;
-      try { cannon = await loadModel("cannon.glb",new THREE.Vector3(7.8,2.2,.2),-.8,1.7); }
-      catch { cannon = fallbackObject(new THREE.Vector3(7.8,2.8,.2),0x36393c,[2.8,1.2,1.2]); }
-      register(cannon,"cannon","修復岸防砲");
-
-      let chest;
-      try { chest = await loadModel("chest.glb",new THREE.Vector3(0,2.24,-6.6),Math.PI,1.8); }
-      catch { chest = fallbackObject(new THREE.Vector3(0,2.8,-6.6),0x724222,[2,1.2,1.3]); }
-      register(chest,"chest","開啟船長寶箱");
-
-      let ship;
-      try { ship = await loadModel("ship-pirate-small.glb",new THREE.Vector3(17.8,-.22,-8.5),-Math.PI/2.5,1.8); }
-      catch { ship = fallbackObject(new THREE.Vector3(17.8,.25,-8.5),0x603719,[8,2,3]); }
-      register(ship,"ship","返回海盜船");
-      world.ship = ship;
-    }
-
-    function updateMissionUI() {
-      const mission = missions[state.missionIndex];
-      if (!mission) return;
-      missionLabel.textContent = `MISSION ${state.missionIndex+1} / ${missions.length}`;
-      missionText.textContent = mission.id === "supplies"
-        ? `${mission.text} ${state.supplies}/${mission.required}`
-        : mission.text;
-      for (const object of world.interactables) {
-        if (object.userData.marker) {
-          object.userData.marker.visible = object.userData.active && object.userData.type === mission.target;
-        }
-      }
-    }
-
-    function currentMovement() {
-      let x = (input.right?1:0) - (input.left?1:0) + input.joyX;
-      let z = (input.down?1:0) - (input.up?1:0) + input.joyY;
-      const v = new THREE.Vector2(x,z);
-      if (v.length()>1) v.normalize();
-      return v;
-    }
-
-    function animatePlayer(delta) {
-      if (!world.player || !state.inputEnabled) return;
-      const v = currentMovement();
-      const parts = world.player.userData.parts;
-      const moving = v.length() > .04;
-
-      if (moving) {
-        world.player.position.x += v.x * PLAYER_SPEED * delta;
-        world.player.position.z += v.y * PLAYER_SPEED * delta;
-        const target = Math.atan2(v.x,v.y);
-        world.player.rotation.y += ((((target-world.player.rotation.y)+Math.PI)%(Math.PI*2))-Math.PI) * Math.min(1,delta*12);
-      }
-
-      const n = Math.sqrt((world.player.position.x**2)/(14.7**2)+(world.player.position.z**2)/(10.5**2));
-      if (n>1) {
-        world.player.position.x /= n;
-        world.player.position.z /= n;
-      }
-
-      const t = clock.elapsedTime;
-      if (moving) {
-        const s = Math.sin(t*9)*.72;
-        parts.leftArm.root.rotation.x = s;
-        parts.rightArm.root.rotation.x = -s;
-        parts.leftLeg.root.rotation.x = -s*.82;
-        parts.rightLeg.root.rotation.x = s*.82;
-        parts.torso.rotation.z = Math.sin(t*9)*.025;
-        world.player.position.y = PLAYER_BASE_Y + Math.abs(Math.sin(t*9))*.08;
-      } else {
-        parts.leftArm.root.rotation.x = THREE.MathUtils.lerp(parts.leftArm.root.rotation.x,.05+Math.sin(t*2.2)*.025,delta*7);
-        parts.rightArm.root.rotation.x = THREE.MathUtils.lerp(parts.rightArm.root.rotation.x,-.05-Math.sin(t*2.2)*.025,delta*7);
-        parts.leftLeg.root.rotation.x = THREE.MathUtils.lerp(parts.leftLeg.root.rotation.x,0,delta*8);
-        parts.rightLeg.root.rotation.x = THREE.MathUtils.lerp(parts.rightLeg.root.rotation.x,0,delta*8);
-        parts.torso.rotation.z = THREE.MathUtils.lerp(parts.torso.rotation.z,0,delta*8);
-        world.player.position.y = THREE.MathUtils.lerp(world.player.position.y,PLAYER_BASE_Y+Math.sin(t*2.2)*.025,delta*6);
-      }
-      parts.headRoot.rotation.y = Math.sin(t*.8)*.06;
-
-      if (state.interactionTimer>0) {
-        state.interactionTimer -= delta;
-        parts.rightArm.root.rotation.x = -1.25;
-        parts.rightArm.forearm.rotation.x = -.5;
-      } else {
-        parts.rightArm.forearm.rotation.x = THREE.MathUtils.lerp(parts.rightArm.forearm.rotation.x,0,delta*9);
-      }
-
-      if (state.victoryTimer>0) {
-        state.victoryTimer -= delta;
-        parts.rightArm.root.rotation.x = -2.3;
-        parts.leftArm.root.rotation.x = -1.1;
-      }
-    }
-
-    function interact() {
-      const object = state.currentInteractable;
-      if (!object) {
-        showToast("附近沒有可以互動的物件");
-        return;
-      }
-      const mission = missions[state.missionIndex];
-      state.interactionTimer = .45;
-
-      if (object.userData.type !== mission.target) {
-        showToast("請先完成目前任務");
-        return;
-      }
-
-      if (mission.id === "supplies") {
-        object.userData.active = false;
-        object.visible = false;
-        state.supplies += 1;
-        showToast(`取得航海物資 ${state.supplies}/3`);
-        updateMissionUI();
-        if (state.supplies >= 3) setTimeout(advanceMission,450);
-        return;
-      }
-
-      if (mission.id === "wreck") showToast("找到船長日誌：寶藏藏在島嶼深處");
-      if (mission.id === "cannon") showToast("岸防砲修復完成，寶藏區已解鎖");
-      if (mission.id === "chest") showToast("取得古老金幣 × 100、失落羅盤 × 1");
-      if (mission.id === "ship") {
-        completeChapter();
-        return;
-      }
-      advanceMission();
-    }
-
-    function advanceMission() {
-      state.missionIndex += 1;
-      updateMissionUI();
-      const mission = missions[state.missionIndex];
-      if (mission) setTimeout(()=>showToast(`新任務：${mission.text}`),300);
-    }
-
-    function completeChapter() {
-      state.inputEnabled = false;
-      state.victoryTimer = 2;
-      touchControls.classList.remove("visible");
-      completeScreen.classList.add("visible");
-    }
-
-    function showToast(text) {
-      toastMessage.textContent = text;
-      toastMessage.classList.add("visible");
-      clearTimeout(state.toastTimer);
-      state.toastTimer = setTimeout(()=>toastMessage.classList.remove("visible"),2200);
-    }
-
-    function updateInteraction() {
-      if (!state.inputEnabled) return;
-      state.currentInteractable = null;
-      let nearest = Infinity;
-      for (const object of world.interactables) {
-        if (!object.userData.active || !object.visible) continue;
-        const d = world.player.position.distanceTo(object.position);
-        if (d < nearest && d <= INTERACTION_DISTANCE) {
-          nearest = d;
-          state.currentInteractable = object;
-        }
-        if (object.userData.marker?.visible) {
-          object.userData.marker.rotation.y += .025;
-          object.userData.marker.position.y = Math.sin(clock.elapsedTime*2.2)*.16;
-        }
-      }
-      if (state.currentInteractable) {
-        interactionPrompt.textContent = `${matchMedia("(pointer:coarse)").matches?"點擊互動":"按 E"}：${state.currentInteractable.userData.label}`;
-        interactionPrompt.classList.add("visible");
-      } else interactionPrompt.classList.remove("visible");
-
-      if (input.interact) {
-        input.interact = false;
-        interact();
-      }
-    }
-
-    function updateCamera(delta) {
-      if (!world.player) return;
-      const target = new THREE.Vector3(world.player.position.x+15,19,world.player.position.z+20);
-      camera.position.lerp(target,Math.min(1,delta*3.4));
-      camera.lookAt(world.player.position.x,2.8,world.player.position.z-1.8);
-    }
-
-    function bindInput() {
-      const map = {
-        KeyW:"up",ArrowUp:"up",KeyS:"down",ArrowDown:"down",
-        KeyA:"left",ArrowLeft:"left",KeyD:"right",ArrowRight:"right"
-      };
-      addEventListener("keydown",e=>{
-        if (map[e.code]) { input[map[e.code]]=true; e.preventDefault(); }
-        if (e.code==="KeyE" || e.code==="Space") { input.interact=true; e.preventDefault(); }
-      });
-      addEventListener("keyup",e=>{ if (map[e.code]) input[map[e.code]]=false; });
-
-      let pointer = null;
-      const resetJoy = ()=>{ input.joyX=0; input.joyY=0; joystickStick.style.transform="translate(-50%,-50%)"; };
-      const updateJoy = e=>{
-        const r=joystickZone.getBoundingClientRect();
-        const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2);
-        const max=r.width*.28, dist=Math.min(Math.hypot(dx,dy),max), a=Math.atan2(dy,dx);
-        const x=Math.cos(a)*dist, y=Math.sin(a)*dist;
-        input.joyX=x/max; input.joyY=y/max;
-        joystickStick.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
-      };
-      joystickZone.addEventListener("pointerdown",e=>{pointer=e.pointerId;joystickZone.setPointerCapture(pointer);updateJoy(e);});
-      joystickZone.addEventListener("pointermove",e=>{if(e.pointerId===pointer)updateJoy(e);});
-      joystickZone.addEventListener("pointerup",()=>{pointer=null;resetJoy();});
-      joystickZone.addEventListener("pointercancel",()=>{pointer=null;resetJoy();});
-      interactionButton.addEventListener("pointerdown",()=>input.interact=true);
-    }
-
-    function updateOrientation() {
-      document.getElementById("orientation-screen").classList.toggle(
-        "visible",
-        matchMedia("(pointer:coarse)").matches && innerHeight>innerWidth
-      );
-    }
-    addEventListener("resize",updateOrientation);
-    updateOrientation();
-
-    startGameButton.addEventListener("click",()=>{
-      if (!state.assetsReady || state.started) return;
-      state.started = true;
-      loadingPage.classList.add("hidden");
-      setTimeout(()=>{
-        stageIntro.classList.add("visible");
-        setTimeout(()=>stageIntro.classList.add("fade-out"),1500);
-        setTimeout(()=>{
-          stageIntro.classList.remove("visible","fade-out");
-          state.inputEnabled = true;
-          hud.classList.add("visible");
-          missionPanel.classList.add("visible");
-          if (matchMedia("(pointer:coarse)").matches) touchControls.classList.add("visible");
-          updateMissionUI();
-        },2050);
-      },420);
     });
 
-    async function init() {
-      setProgress(5,"正在建立海上環境……");
-      createLights();
-      createEnvironment();
-      createPlayer();
-      setProgress(18,"正在準備寶藏島……");
-      await Promise.allSettled([createMissionObjects()]);
-      setTimeout(completeLoading,250);
-      bindInput();
+    function applyPose(t) {
+      if (!character) return;
+      const p = character.userData.parts;
+      const reset = o=>o.rotation.set(0,0,0);
+      [p.leftArm.root,p.rightArm.root,p.leftArm.forearm,p.rightArm.forearm,p.leftLeg.root,p.rightLeg.root,p.torso,p.headRoot].forEach(reset);
+      p.torso.position.y = 0;
+
+      if (config.pose === "walk") {
+        const s = Math.sin(t*5.5)*.75;
+        p.leftArm.root.rotation.x=s; p.rightArm.root.rotation.x=-s;
+        p.leftLeg.root.rotation.x=-s*.85; p.rightLeg.root.rotation.x=s*.85;
+        p.torso.rotation.z=Math.sin(t*5.5)*.03;
+        p.torso.position.y=Math.abs(Math.sin(t*5.5))*.05;
+      } else if (config.pose === "interact") {
+        p.rightArm.root.rotation.x=-1.35;
+        p.rightArm.forearm.rotation.x=-.55;
+        p.headRoot.rotation.y=-.16;
+      } else if (config.pose === "victory") {
+        p.rightArm.root.rotation.x=-2.35;
+        p.leftArm.root.rotation.x=-1.1;
+        p.torso.rotation.z=Math.sin(t*4)*.05;
+      } else {
+        p.torso.position.y=Math.sin(t*2)*.025;
+        p.headRoot.rotation.y=Math.sin(t*.8)*.06;
+      }
     }
-    init().catch(error=>{console.error(error);completeLoading();});
+
+    function setStatus(text,error=false) {
+      status.textContent=text;
+      status.style.color=error?"#ef9a9a":"#9ed7ae";
+    }
+
+    document.getElementById("save-browser").onclick=()=>{
+      localStorage.setItem("pirate-character-config",JSON.stringify(config));
+      setStatus("已儲存。返回遊戲並重新整理即可套用。");
+    };
+
+    document.getElementById("copy-json").onclick=async()=>{
+      try {
+        await navigator.clipboard.writeText(JSON.stringify(config,null,2));
+        setStatus("JSON 已複製");
+      } catch {
+        setStatus("瀏覽器禁止複製",true);
+      }
+    };
+
+    document.getElementById("download-json").onclick=()=>{
+      const blob=new Blob([JSON.stringify(config,null,2)],{type:"application/json"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url; a.download="pirate-character.json"; a.click();
+      URL.revokeObjectURL(url);
+      setStatus("已下載 JSON");
+    };
+
+    const fileInput=document.getElementById("json-file");
+    document.getElementById("import-json").onclick=()=>fileInput.click();
+    fileInput.addEventListener("change",async()=>{
+      const file=fileInput.files?.[0];
+      if(!file)return;
+      try {
+        const imported=JSON.parse(await file.text());
+        config={...defaults,...imported};
+        syncUI(); rebuild(); setStatus("JSON 匯入完成");
+      } catch {
+        setStatus("JSON 格式錯誤",true);
+      }
+      fileInput.value="";
+    });
+
+    function setView(x,y,z) {
+      camera.position.set(x,y,z);
+      controls.target.set(0,3.1,0);
+      controls.update();
+    }
+    document.getElementById("front-view").onclick=()=>setView(0,4.3,9);
+    document.getElementById("side-view").onclick=()=>setView(9,4.3,0);
+    document.getElementById("back-view").onclick=()=>setView(0,4.3,-9);
+    document.getElementById("toggle-grid").onclick=()=>grid.visible=!grid.visible;
+
+    function resize() {
+      const r=viewport.getBoundingClientRect();
+      renderer.setSize(r.width,r.height,false);
+      camera.aspect=r.width/r.height;
+      camera.updateProjectionMatrix();
+    }
+    addEventListener("resize",resize);
+    syncUI();
+    rebuild();
+    resize();
 
     function loop() {
       requestAnimationFrame(loop);
-      const delta=Math.min(clock.getDelta(),.05);
-      animatePlayer(delta);
-      updateInteraction();
-      updateCamera(delta);
-      if (world.water) world.water.position.y=-.68+Math.sin(clock.elapsedTime*.7)*.025;
-      if (world.ship) {
-        world.ship.position.y=-.22+Math.sin(clock.elapsedTime*1.15)*.16;
-        world.ship.rotation.z=Math.sin(clock.elapsedTime*.8)*.018;
-      }
+      applyPose(clock.getElapsedTime());
+      controls.update();
       renderer.render(scene,camera);
     }
     loop();
