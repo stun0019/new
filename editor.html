@@ -2,497 +2,514 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  >
-  <title>Pirate Character Editor</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Pirate Adventure V0.4</title>
   <style>
+    :root {
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+    }
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-
-    html,
-    body {
+    html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-
-      background: #0a1118;
-      color: #ffffff;
-
-      font-family:
-        Arial,
-        "Microsoft JhengHei",
-        sans-serif;
+      background: #071018;
+      touch-action: none;
+      overscroll-behavior: none;
+      font-family: Arial, "Microsoft JhengHei", sans-serif;
     }
-
     body {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 360px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-
-    button,
-    input,
-    select {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    #viewport {
+    button { font: inherit; }
+    #game-wrapper {
       position: relative;
-      min-width: 0;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      max-width: 1280px;
+      max-height: 720px;
       overflow: hidden;
-
-      background:
-        radial-gradient(
-          circle at 50% 35%,
-          #243a49 0%,
-          #101b25 48%,
-          #091018 100%
-        );
+      background: #0e2933;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 28px 80px rgba(0,0,0,.48);
     }
-
-    #viewport canvas {
+    #game-canvas {
       display: block;
       width: 100%;
       height: 100%;
+      outline: none;
     }
-
-    #top-toolbar {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      z-index: 20;
-
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .toolbar-button {
-      min-width: 74px;
-      padding: 9px 13px;
-
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 8px;
-
-      color: #ffffff;
-
-      background: rgba(12, 24, 34, 0.82);
-
-      backdrop-filter: blur(8px);
-    }
-
-    .toolbar-button:hover {
-      border-color: rgba(255, 255, 255, 0.42);
-      background: rgba(27, 44, 57, 0.9);
-    }
-
-    #back-to-game {
+    #debug-editor-button {
       position: absolute;
       top: 16px;
       right: 16px;
-      z-index: 20;
-
-      padding: 9px 14px;
-
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-
-      color: #ffffff;
-      text-decoration: none;
-
-      background: rgba(112, 54, 34, 0.86);
-
-      backdrop-filter: blur(8px);
-    }
-
-    #view-hint {
-      position: absolute;
-      left: 50%;
-      bottom: 16px;
-      z-index: 20;
-
-      padding: 7px 12px;
-
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
-
-      color: rgba(255, 255, 255, 0.56);
-
-      background: rgba(4, 10, 15, 0.54);
-
+      z-index: 950;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 7px;
+      color: rgba(255,255,255,.88);
+      background: rgba(10,20,28,.72);
       font-size: 12px;
-      text-align: center;
-
-      transform: translateX(-50%);
-
+      font-weight: 800;
+      letter-spacing: 1px;
+      cursor: pointer;
       backdrop-filter: blur(7px);
     }
-
-    #panel {
-      height: 100%;
-      overflow-y: auto;
-
-      padding: 18px;
-
-      border-left: 1px solid rgba(255, 255, 255, 0.08);
-
-      background: #111a23;
+    #debug-editor-button:hover {
+      border-color: rgba(255,255,255,.55);
+      background: rgba(31,51,64,.94);
     }
-
-    #panel h1 {
-      margin-bottom: 5px;
-
-      font-size: 21px;
+    #orientation-screen,
+    #loading-page,
+    #stage-intro,
+    #complete-screen {
+      position: absolute;
+      inset: 0;
     }
-
-    .subtitle {
-      margin-bottom: 18px;
-
-      color: rgba(255, 255, 255, 0.56);
-
-      font-size: 13px;
-      line-height: 1.55;
-    }
-
-    .section {
-      margin-bottom: 18px;
-      padding-bottom: 16px;
-
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .section h2 {
-      margin-bottom: 12px;
-
-      color: #e7c77d;
-
-      font-size: 14px;
-      letter-spacing: 1px;
-    }
-
-    .field {
-      display: grid;
-      grid-template-columns: 110px minmax(0, 1fr) 48px;
-      align-items: center;
-
-      gap: 9px;
-      margin-bottom: 10px;
-    }
-
-    .field label {
-      color: rgba(255, 255, 255, 0.8);
-
-      font-size: 13px;
-    }
-
-    .field output {
-      color: rgba(255, 255, 255, 0.58);
-
-      font-size: 12px;
-      text-align: right;
-    }
-
-    input[type="range"] {
-      width: 100%;
-
-      accent-color: #d4ad58;
-    }
-
-    input[type="color"] {
-      width: 100%;
-      height: 32px;
-
-      border: 0;
-      border-radius: 6px;
-
-      background: transparent;
-    }
-
-    select {
-      width: 100%;
-
-      padding: 9px;
-
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 7px;
-
-      color: #ffffff;
-
-      background: #192733;
-    }
-
-    .toggle-field {
+    #orientation-screen {
+      z-index: 1000;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-
-      gap: 12px;
-      margin-bottom: 10px;
-
-      color: rgba(255, 255, 255, 0.8);
-
-      font-size: 13px;
+      justify-content: center;
+      color: #fff;
+      background: radial-gradient(circle at center, #173442 0%, #071018 74%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity .55s ease, visibility .55s ease;
     }
-
-    .toggle-field input {
-      width: 18px;
-      height: 18px;
-
-      accent-color: #d4ad58;
+    #orientation-screen.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
-
-    .actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-
-      gap: 8px;
+    .orientation-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      padding: 28px;
+      text-align: center;
     }
-
-    .action-button {
-      padding: 10px 8px;
-
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-
-      color: #ffffff;
-
-      background: #233441;
+    .phone-rotate-icon {
+      position: relative;
+      width: 70px;
+      height: 116px;
+      border: 4px solid rgba(255,255,255,.92);
+      border-radius: 14px;
+      animation: phoneRotate 2.2s ease-in-out infinite;
     }
-
-    .action-button.primary {
+    .phone-rotate-icon::after {
+      content: "↻";
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      margin-left: 18px;
+      font-size: 44px;
+      transform: translateY(-50%);
+    }
+    .orientation-title { font-size: clamp(24px,6vw,38px); font-weight: 800; }
+    .orientation-subtitle { margin-top: 9px; color: rgba(255,255,255,.66); }
+    @keyframes phoneRotate {
+      0%,100% { transform: rotate(-18deg); }
+      50% { transform: rotate(72deg); }
+    }
+    #loading-page {
+      z-index: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
       background:
-        linear-gradient(
-          180deg,
-          #b58a43,
-          #6c4925
-        );
+        radial-gradient(circle at 50% 40%, rgba(46,92,104,.68) 0%, rgba(11,28,36,.98) 50%, #060d13 100%);
+      transition: opacity .75s ease, visibility .75s ease;
     }
-
-    #status {
-      min-height: 20px;
+    #loading-page.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #loading-page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: .12;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      animation: gridMove 10s linear infinite;
+    }
+    @keyframes gridMove { to { background-position: 48px 48px; } }
+    .loading-content {
+      position: relative;
+      z-index: 2;
+      width: min(78%,560px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .game-logo { margin-bottom: 48px; }
+    .logo-main {
+      display: block;
+      color: #f7f5ed;
+      font-size: clamp(42px,7vw,86px);
+      font-weight: 900;
+      letter-spacing: clamp(6px,1.1vw,14px);
+      text-shadow: 0 4px 0 rgba(0,0,0,.42), 0 14px 32px rgba(0,0,0,.62);
+    }
+    .logo-sub {
+      display: block;
+      margin-top: 5px;
+      color: rgba(214,222,220,.72);
+      font-size: clamp(13px,1.8vw,22px);
+      font-weight: 700;
+      letter-spacing: clamp(8px,1.5vw,18px);
+    }
+    #loading-status {
+      width: 100%;
+      transition: opacity .4s ease, transform .4s ease;
+    }
+    #loading-status.hidden {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    .loading-text {
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      color: rgba(255,255,255,.78);
+      font-size: clamp(13px,1.8vw,18px);
+    }
+    #progress-track {
+      width: 100%;
+      height: clamp(12px,1.7vw,18px);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.24);
+      border-radius: 999px;
+      background: rgba(0,0,0,.36);
+    }
+    #progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg,#b48a45,#f0d78a,#bd9149);
+      transition: width .12s linear;
+    }
+    #start-game-button {
+      position: absolute;
+      top: calc(100% - 68px);
+      min-width: 220px;
+      padding: 15px 34px;
+      border: 1px solid rgba(255,255,255,.42);
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(180deg,rgba(178,135,69,.97),rgba(92,61,31,.99));
+      font-size: clamp(17px,2.2vw,24px);
+      font-weight: 800;
+      letter-spacing: 3px;
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px);
+      transition: .6s ease;
+    }
+    #start-game-button.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+    #stage-intro {
+      z-index: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: rgba(0,0,0,.58);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .45s ease, visibility .45s ease;
+    }
+    #stage-intro.visible { opacity: 1; visibility: visible; }
+    #stage-intro.fade-out { opacity: 0; }
+    #stage-intro-title {
+      font-size: clamp(44px,7vw,88px);
+      font-weight: 900;
+      letter-spacing: clamp(7px,1.5vw,18px);
+    }
+    #stage-intro-subtitle {
       margin-top: 10px;
-
-      color: #9ed7ae;
-
-      font-size: 12px;
-      line-height: 1.45;
+      color: rgba(255,255,255,.74);
+      font-size: clamp(18px,2.6vw,32px);
+      font-weight: 700;
+      letter-spacing: 5px;
     }
-
-    @media (max-width: 900px) {
-      body {
-        grid-template-columns: 1fr;
-        grid-template-rows: 56vh 44vh;
-      }
-
-      #panel {
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        border-left: 0;
-      }
-
-      .field {
-        grid-template-columns: 100px minmax(0, 1fr) 44px;
-      }
-
-      #view-hint {
-        bottom: 10px;
-
-        width: max-content;
-        max-width: 78%;
-
-        white-space: normal;
-      }
+    #hud {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: .45s ease;
+    }
+    #hud.visible { opacity: 1; visibility: visible; }
+    #mission-panel {
+      position: absolute;
+      top: 22px;
+      left: 24px;
+      max-width: 420px;
+      padding: 13px 17px;
+      border-left: 4px solid rgba(235,196,105,.92);
+      color: #fff;
+      background: linear-gradient(90deg,rgba(5,18,25,.82),rgba(5,18,25,.28));
+      opacity: 0;
+      transform: translateX(-14px);
+      transition: .5s ease;
+    }
+    #mission-panel.visible { opacity: 1; transform: translateX(0); }
+    #mission-label {
+      margin-bottom: 4px;
+      color: rgba(239,205,122,.94);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 3px;
+    }
+    #mission-text {
+      font-size: clamp(14px,1.6vw,20px);
+      font-weight: 700;
+    }
+    #desktop-help {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      padding: 9px 15px;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 7px;
+      color: rgba(255,255,255,.7);
+      background: rgba(5,18,25,.5);
+      transform: translateX(-50%);
+      backdrop-filter: blur(6px);
+    }
+    #interaction-prompt {
+      position: absolute;
+      left: 50%;
+      bottom: 56px;
+      min-width: 240px;
+      padding: 12px 20px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(4,16,23,.82);
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      transform: translateX(-50%) translateY(10px);
+      transition: .18s ease;
+    }
+    #interaction-prompt.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toast-message {
+      position: absolute;
+      left: 50%;
+      top: 98px;
+      max-width: 560px;
+      padding: 13px 22px;
+      border-radius: 9px;
+      color: #fff;
+      background: rgba(4,16,23,.86);
+      font-weight: 800;
+      text-align: center;
+      opacity: 0;
+      transform: translateX(-50%) translateY(-10px);
+      transition: .25s ease;
+    }
+    #toast-message.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #touch-controls {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+      display: none;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #touch-controls.visible { opacity: 1; visibility: visible; }
+    #joystick-zone {
+      position: absolute;
+      left: max(22px, calc(var(--safe-left) + 16px));
+      bottom: max(20px, calc(var(--safe-bottom) + 14px));
+      width: 150px;
+      height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+    }
+    #joystick-base {
+      position: relative;
+      width: 124px;
+      height: 124px;
+      border: 2px solid rgba(255,255,255,.17);
+      border-radius: 50%;
+      background: rgba(4,17,24,.28);
+    }
+    #joystick-stick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 58px;
+      height: 58px;
+      border: 2px solid rgba(255,255,255,.24);
+      border-radius: 50%;
+      background: radial-gradient(circle at 36% 30%,rgba(255,255,255,.24),rgba(18,47,56,.65));
+      transform: translate(-50%,-50%);
+    }
+    #interaction-button {
+      position: absolute;
+      right: max(34px, calc(var(--safe-right) + 24px));
+      bottom: max(42px, calc(var(--safe-bottom) + 28px));
+      width: 92px;
+      height: 92px;
+      border: 2px solid rgba(255,255,255,.25);
+      border-radius: 50%;
+      color: #fff;
+      background: radial-gradient(circle at 35% 28%,rgba(191,151,79,.88),rgba(73,47,26,.86));
+      font-size: 17px;
+      font-weight: 900;
+      pointer-events: auto;
+    }
+    #complete-screen {
+      z-index: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: rgba(3,12,18,.84);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: .55s ease;
+    }
+    #complete-screen.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    #complete-title {
+      font-size: clamp(42px,7vw,86px);
+      font-weight: 900;
+      letter-spacing: clamp(7px,1.4vw,18px);
+    }
+    #complete-subtitle {
+      margin-top: 14px;
+      color: rgba(255,255,255,.72);
+      font-size: clamp(18px,2.4vw,30px);
+      font-weight: 700;
+    }
+    #restart-button {
+      margin-top: 22px;
+      min-width: 190px;
+      padding: 14px 28px;
+      border: 1px solid rgba(255,255,255,.38);
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(180deg,#b08446,#5b3b22);
+      font-size: 20px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    @media (pointer: coarse), (max-width: 900px) {
+      #touch-controls { display: block; }
+      #desktop-help { display: none; }
+      #mission-panel { top: 15px; left: 17px; max-width: 330px; }
+      #interaction-prompt { bottom: 152px; }
+      #debug-editor-button { top: 10px; right: 10px; }
+    }
+    @media (pointer: fine) and (hover: hover) {
+      #touch-controls { display: none !important; }
     }
   </style>
 </head>
-
 <body>
-  <main id="viewport">
-    <div id="top-toolbar">
-      <button id="front-view" class="toolbar-button" type="button">
-        正面
-      </button>
+  <main id="game-wrapper">
+    <canvas id="game-canvas" width="1280" height="720" tabindex="0"></canvas>
+    <button id="debug-editor-button" type="button">DEBUG</button>
 
-      <button id="side-view" class="toolbar-button" type="button">
-        側面
-      </button>
+    <section id="orientation-screen">
+      <div class="orientation-content">
+        <div class="phone-rotate-icon"></div>
+        <div>
+          <div class="orientation-title">請將手機轉為橫向</div>
+          <div class="orientation-subtitle">橫向模式可獲得最佳遊戲體驗</div>
+        </div>
+      </div>
+    </section>
 
-      <button id="back-view" class="toolbar-button" type="button">
-        背面
-      </button>
+    <section id="loading-page">
+      <div class="loading-content">
+        <div class="game-logo">
+          <span class="logo-main">PIRATE</span>
+          <span class="logo-sub">ADVENTURE</span>
+        </div>
+        <div id="loading-status">
+          <div class="loading-text">
+            <span id="loading-message">正在確認航行路線……</span>
+            <span id="progress-number">0%</span>
+          </div>
+          <div id="progress-track"><div id="progress-bar"></div></div>
+        </div>
+        <button id="start-game-button" type="button">開始冒險</button>
+      </div>
+    </section>
 
-      <button id="toggle-grid" class="toolbar-button" type="button">
-        格線
-      </button>
-    </div>
+    <section id="stage-intro">
+      <div id="stage-intro-title">CHAPTER 1</div>
+      <div id="stage-intro-subtitle">寶藏島</div>
+    </section>
 
-    <a id="back-to-game" href="./index.html">
-      返回遊戲
-    </a>
+    <section id="hud">
+      <div id="mission-panel">
+        <div id="mission-label">MISSION 1 / 5</div>
+        <div id="mission-text">調查海岸邊的擱淺船</div>
+      </div>
+      <div id="desktop-help">WASD／方向鍵移動｜E／Space 互動</div>
+      <div id="toast-message"></div>
+      <div id="interaction-prompt">按 E 互動</div>
+    </section>
 
-    <div id="view-hint">
-      左鍵旋轉｜滾輪縮放｜右鍵平移
-    </div>
+    <section id="touch-controls">
+      <div id="joystick-zone">
+        <div id="joystick-base"><div id="joystick-stick"></div></div>
+      </div>
+      <button id="interaction-button" type="button">互動</button>
+    </section>
+
+    <section id="complete-screen">
+      <div id="complete-title">CHAPTER COMPLETE</div>
+      <div id="complete-subtitle">寶藏島探索完成</div>
+      <button id="restart-button" type="button">再次遊玩</button>
+    </section>
   </main>
-
-  <aside id="panel">
-    <h1>海盜角色編輯器</h1>
-
-    <div class="subtitle">
-      即時調整 Three.js 低多邊形角色。設定可匯出為 JSON，
-      後續再讓遊戲讀取同一份角色資料。
-    </div>
-
-    <section class="section">
-      <h2>整體比例</h2>
-
-      <div class="field">
-        <label for="height">角色高度</label>
-        <input id="height" type="range" min="0.75" max="1.35" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="body-width">身體寬度</label>
-        <input id="body-width" type="range" min="0.7" max="1.4" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="head-scale">頭部大小</label>
-        <input id="head-scale" type="range" min="0.7" max="1.5" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="arm-length">手臂長度</label>
-        <input id="arm-length" type="range" min="0.7" max="1.4" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="leg-length">腿部長度</label>
-        <input id="leg-length" type="range" min="0.7" max="1.4" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>臉部與配件</h2>
-
-      <div class="field">
-        <label for="beard-scale">鬍子大小</label>
-        <input id="beard-scale" type="range" min="0" max="1.5" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="hat-scale">帽子大小</label>
-        <input id="hat-scale" type="range" min="0.7" max="1.4" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="field">
-        <label for="sword-scale">短劍大小</label>
-        <input id="sword-scale" type="range" min="0" max="1.4" step="0.01" value="1">
-        <output>1.00</output>
-      </div>
-
-      <div class="toggle-field">
-        <label for="show-hat">顯示帽子</label>
-        <input id="show-hat" type="checkbox" checked>
-      </div>
-
-      <div class="toggle-field">
-        <label for="show-beard">顯示鬍子</label>
-        <input id="show-beard" type="checkbox" checked>
-      </div>
-
-      <div class="toggle-field">
-        <label for="show-sword">顯示短劍</label>
-        <input id="show-sword" type="checkbox" checked>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>配色</h2>
-
-      <div class="field">
-        <label for="coat-color">外套</label>
-        <input id="coat-color" type="color" value="#7e2730">
-        <output></output>
-      </div>
-
-      <div class="field">
-        <label for="shirt-color">襯衫</label>
-        <input id="shirt-color" type="color" value="#e7ded0">
-        <output></output>
-      </div>
-
-      <div class="field">
-        <label for="skin-color">膚色</label>
-        <input id="skin-color" type="color" value="#d99a69">
-        <output></output>
-      </div>
-
-      <div class="field">
-        <label for="leather-color">皮革</label>
-        <input id="leather-color" type="color" value="#4b2e20">
-        <output></output>
-      </div>
-
-      <div class="field">
-        <label for="hat-color">帽子</label>
-        <input id="hat-color" type="color" value="#17191d">
-        <output></output>
-      </div>
-
-      <div class="field">
-        <label for="beard-color">鬍子</label>
-        <input id="beard-color" type="color" value="#3c241b">
-        <output></output>
-      </div>
-    </section>
-
-    <section class="section">
-      <h2>姿勢預覽</h2>
-
-      <select id="pose">
-        <option value="idle">待機</option>
-        <option value="walk">走路</option>
-        <option value="interact">互動</option>
-        <option value="victory">勝利</option>
-      </select>
-    </section>
-
-    <div class="actions">
-      <button id="reset" class="action-button" type="button">
-        重設
-      </button>
-
-      <button id="copy-json" class="action-button" type="button">
-        複製 JSON
-      </button>
-
-      <button id="download-json" class="action-button primary" type="button">
-        下載 JSON
-      </button>
-
-      <button id="download-code" class="action-button" type="button">
-        下載設定 JS
-      </button>
-    </div>
-
-    <div id="status"></div>
-  </aside>
 
   <script type="importmap">
     {
@@ -505,1403 +522,811 @@
 
   <script type="module">
     import * as THREE from "three";
-    import {
-      OrbitControls
-    } from "three/addons/controls/OrbitControls.js";
+    import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
-    const viewport =
-      document.getElementById("viewport");
+    
+function colorDarken(hex, factor) {
+  return new THREE.Color(hex).multiplyScalar(factor);
+}
 
-    const statusElement =
-      document.getElementById("status");
+function createMat(color, roughness = 0.78, metalness = 0) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+}
 
-    const defaults = {
-      height: 1,
-      bodyWidth: 1,
-      headScale: 1,
-      armLength: 1,
-      legLength: 1,
-      beardScale: 1,
-      hatScale: 1,
-      swordScale: 1,
+function addMesh(parent, geometry, material, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1]) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(...position);
+  mesh.rotation.set(...rotation);
+  mesh.scale.set(...scale);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
 
-      showHat: true,
-      showBeard: true,
-      showSword: true,
+function createPirateCharacter(config = {}) {
+  const c = {
+    height: 1,
+    bodyWidth: 1,
+    headScale: 1,
+    armLength: 1,
+    legLength: 1,
+    beardScale: 1,
+    hatScale: 1,
+    swordScale: 1,
+    coatColor: "#7f2632",
+    shirtColor: "#efe5d5",
+    skinColor: "#d99a69",
+    leatherColor: "#4b2e20",
+    hatColor: "#17191d",
+    beardColor: "#3c241b",
+    sashColor: "#c69b45",
+    showHat: true,
+    showBeard: true,
+    showSword: true,
+    showEyePatch: true,
+    showEarring: true,
+    ...config
+  };
 
-      coatColor: "#7e2730",
-      shirtColor: "#e7ded0",
-      skinColor: "#d99a69",
-      leatherColor: "#4b2e20",
-      hatColor: "#17191d",
-      beardColor: "#3c241b",
+  const root = new THREE.Group();
+  root.name = "PirateRoot";
+  root.scale.set(c.bodyWidth, c.height, 1);
 
-      pose: "idle"
-    };
+  const materials = {
+    coat: createMat(c.coatColor, 0.74),
+    coatDark: createMat(colorDarken(c.coatColor, 0.58), 0.82),
+    coatLight: createMat(new THREE.Color(c.coatColor).lerp(new THREE.Color("#ffffff"), 0.13), 0.72),
+    shirt: createMat(c.shirtColor, 0.9),
+    skin: createMat(c.skinColor, 0.84),
+    skinDark: createMat(colorDarken(c.skinColor, 0.82), 0.88),
+    leather: createMat(c.leatherColor, 0.86),
+    leatherDark: createMat(colorDarken(c.leatherColor, 0.48), 0.9),
+    hat: createMat(c.hatColor, 0.84),
+    beard: createMat(c.beardColor, 0.9),
+    gold: createMat(c.sashColor, 0.42, 0.42),
+    eye: createMat(0x111318, 0.9),
+    white: createMat(0xf7f4ea, 0.95),
+    blade: createMat(0xc1cbd0, 0.25, 0.78),
+    boot: createMat(0x15171b, 0.88),
+    eyebrow: createMat(colorDarken(c.beardColor, 0.72), 0.92)
+  };
 
-    let config = {
-      ...defaults
-    };
+  const hips = new THREE.Group();
+  hips.position.y = 2.04;
+  root.add(hips);
 
-    let character = null;
-    let parts = null;
+  const torso = new THREE.Group();
+  torso.position.y = 1.12;
+  hips.add(torso);
 
-    const scene =
-      new THREE.Scene();
+  // Shirt and chest
+  addMesh(torso, new THREE.BoxGeometry(1.16, 1.38, 0.66), materials.shirt, [0, 0.1, 0]);
+  addMesh(torso, new THREE.CylinderGeometry(0.28, 0.38, 0.5, 8), materials.shirt, [0, 0.78, 0.05], [0, 0, 0], [1.8, 1, 1.1]);
 
-    scene.background =
-      new THREE.Color(0x111c25);
+  // Coat body panels
+  addMesh(torso, new THREE.BoxGeometry(0.48, 1.6, 0.82), materials.coat, [-0.46, 0.03, 0.03], [0, 0, 0.07]);
+  addMesh(torso, new THREE.BoxGeometry(0.48, 1.6, 0.82), materials.coat, [0.46, 0.03, 0.03], [0, 0, -0.07]);
 
-    const camera =
-      new THREE.PerspectiveCamera(
-        38,
-        1,
-        0.1,
-        100
-      );
+  // Lapels
+  addMesh(torso, new THREE.BoxGeometry(0.22, 0.78, 0.12), materials.coatLight, [-0.23, 0.42, 0.46], [0.04, 0, -0.32]);
+  addMesh(torso, new THREE.BoxGeometry(0.22, 0.78, 0.12), materials.coatLight, [0.23, 0.42, 0.46], [0.04, 0, 0.32]);
 
-    camera.position.set(
-      7.5,
-      5.8,
-      9.5
+  // Collar
+  addMesh(torso, new THREE.BoxGeometry(0.42, 0.24, 0.22), materials.coatDark, [-0.33, 0.85, 0.02], [0, 0, -0.28]);
+  addMesh(torso, new THREE.BoxGeometry(0.42, 0.24, 0.22), materials.coatDark, [0.33, 0.85, 0.02], [0, 0, 0.28]);
+
+  // Coat tails
+  const leftTail = addMesh(torso, new THREE.BoxGeometry(0.55, 1.0, 0.72), materials.coat, [-0.34, -1.02, 0.03], [-0.12, 0, 0.08]);
+  const rightTail = addMesh(torso, new THREE.BoxGeometry(0.55, 1.0, 0.72), materials.coat, [0.34, -1.02, 0.03], [-0.12, 0, -0.08]);
+
+  // Belt, sash and buckle
+  addMesh(torso, new THREE.BoxGeometry(1.42, 0.25, 0.84), materials.leather, [0, -0.58, 0.02]);
+  addMesh(torso, new THREE.BoxGeometry(0.38, 0.38, 0.12), materials.gold, [0, -0.58, 0.48]);
+  addMesh(torso, new THREE.BoxGeometry(0.18, 2.08, 0.12), materials.gold, [-0.08, 0.08, 0.48], [0, 0, -0.54]);
+
+  // Buttons
+  for (const y of [0.44, 0.04, -0.34]) {
+    addMesh(torso, new THREE.SphereGeometry(0.075, 8, 6), materials.gold, [0, y, 0.46]);
+  }
+
+  // Shoulder pads
+  addMesh(torso, new THREE.CylinderGeometry(0.34, 0.38, 0.16, 8), materials.gold, [-0.8, 0.8, 0], [0, 0, Math.PI / 2]);
+  addMesh(torso, new THREE.CylinderGeometry(0.34, 0.38, 0.16, 8), materials.gold, [0.8, 0.8, 0], [0, 0, Math.PI / 2]);
+
+  // Head
+  const headRoot = new THREE.Group();
+  headRoot.position.set(0, 1.58, 0);
+  headRoot.scale.setScalar(c.headScale);
+  torso.add(headRoot);
+
+  const head = addMesh(headRoot, new THREE.DodecahedronGeometry(0.56, 1), materials.skin);
+  head.scale.set(0.94, 1.04, 0.92);
+
+  // Nose
+  addMesh(headRoot, new THREE.ConeGeometry(0.13, 0.3, 5), materials.skinDark, [0, -0.03, 0.54], [Math.PI / 2, 0, 0]);
+
+  // Eyes
+  addMesh(headRoot, new THREE.SphereGeometry(0.06, 8, 6), materials.eye, [-0.2, 0.12, 0.49]);
+  addMesh(headRoot, new THREE.SphereGeometry(0.06, 8, 6), materials.eye, [0.2, 0.12, 0.49]);
+  addMesh(headRoot, new THREE.SphereGeometry(0.018, 6, 4), materials.white, [-0.18, 0.14, 0.535]);
+  addMesh(headRoot, new THREE.SphereGeometry(0.018, 6, 4), materials.white, [0.22, 0.14, 0.535]);
+
+  // Eyebrows
+  addMesh(headRoot, new THREE.BoxGeometry(0.24, 0.055, 0.06), materials.eyebrow, [-0.2, 0.29, 0.49], [0, 0, -0.16]);
+  addMesh(headRoot, new THREE.BoxGeometry(0.24, 0.055, 0.06), materials.eyebrow, [0.2, 0.29, 0.49], [0, 0, 0.16]);
+
+  // Ears
+  addMesh(headRoot, new THREE.SphereGeometry(0.12, 8, 6), materials.skinDark, [-0.56, 0, 0]);
+  addMesh(headRoot, new THREE.SphereGeometry(0.12, 8, 6), materials.skinDark, [0.56, 0, 0]);
+
+  // Eye patch
+  const eyePatch = new THREE.Group();
+  eyePatch.visible = c.showEyePatch;
+  addMesh(eyePatch, new THREE.SphereGeometry(0.16, 10, 8, 0, Math.PI * 2, 0, Math.PI / 2), materials.hat, [0.2, 0.13, 0.47], [Math.PI / 2, 0, 0]);
+  addMesh(eyePatch, new THREE.BoxGeometry(0.7, 0.045, 0.04), materials.hat, [0.0, 0.25, 0.48], [0, 0, -0.25]);
+  headRoot.add(eyePatch);
+
+  // Earring
+  const earring = new THREE.Group();
+  earring.visible = c.showEarring;
+  addMesh(earring, new THREE.TorusGeometry(0.11, 0.025, 8, 16), materials.gold, [-0.59, -0.06, 0], [0, Math.PI / 2, 0]);
+  headRoot.add(earring);
+
+  // Beard and moustache
+  const beardGroup = new THREE.Group();
+  beardGroup.visible = c.showBeard;
+  beardGroup.scale.setScalar(c.beardScale);
+
+  addMesh(beardGroup, new THREE.ConeGeometry(0.48, 0.72, 7), materials.beard, [0, -0.45, 0.18], [0.16, 0, 0]);
+  addMesh(beardGroup, new THREE.ConeGeometry(0.1, 0.34, 5), materials.beard, [-0.12, -0.11, 0.53], [Math.PI / 2, 0, -1.05]);
+  addMesh(beardGroup, new THREE.ConeGeometry(0.1, 0.34, 5), materials.beard, [0.12, -0.11, 0.53], [Math.PI / 2, 0, 1.05]);
+  headRoot.add(beardGroup);
+
+  // Hat
+  const hatGroup = new THREE.Group();
+  hatGroup.position.y = 0.55;
+  hatGroup.scale.setScalar(c.hatScale);
+  hatGroup.visible = c.showHat;
+
+  addMesh(hatGroup, new THREE.CylinderGeometry(0.72, 0.82, 0.16, 10), materials.hat);
+  addMesh(hatGroup, new THREE.ConeGeometry(0.68, 0.78, 3), materials.hat, [0, 0.38, 0], [0, Math.PI / 2, 0]);
+  addMesh(hatGroup, new THREE.BoxGeometry(0.94, 0.11, 0.08), materials.gold, [0, 0.27, 0.49]);
+  addMesh(hatGroup, new THREE.SphereGeometry(0.07, 8, 6), materials.gold, [0, 0.28, 0.55]);
+  headRoot.add(hatGroup);
+
+  function createArm(side) {
+    const armRoot = new THREE.Group();
+    armRoot.position.set(side * 0.84, 0.86, 0);
+    torso.add(armRoot);
+
+    addMesh(
+      armRoot,
+      new THREE.CapsuleGeometry(0.23, 0.58 * c.armLength, 4, 8),
+      materials.coat,
+      [0, -0.43 * c.armLength, 0]
     );
 
-    const renderer =
-      new THREE.WebGLRenderer({
-        antialias: true,
-        powerPreference: "high-performance"
-      });
-
-    renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio || 1,
-        2
-      )
+    addMesh(
+      armRoot,
+      new THREE.CylinderGeometry(0.27, 0.27, 0.18, 8),
+      materials.gold,
+      [0, -0.82 * c.armLength, 0]
     );
 
+    const forearm = new THREE.Group();
+    forearm.position.y = -0.91 * c.armLength;
+    armRoot.add(forearm);
+
+    addMesh(
+      forearm,
+      new THREE.CapsuleGeometry(0.2, 0.48 * c.armLength, 4, 8),
+      materials.coatDark,
+      [0, -0.34 * c.armLength, 0]
+    );
+
+    addMesh(
+      forearm,
+      new THREE.DodecahedronGeometry(0.22, 0),
+      materials.skin,
+      [0, -0.74 * c.armLength, 0]
+    );
+
+    return { root: armRoot, forearm };
+  }
+
+  const leftArm = createArm(-1);
+  const rightArm = createArm(1);
+
+  function createLeg(side) {
+    const legRoot = new THREE.Group();
+    legRoot.position.set(side * 0.35, -0.08, 0);
+    hips.add(legRoot);
+
+    addMesh(
+      legRoot,
+      new THREE.CapsuleGeometry(0.28, 0.64 * c.legLength, 4, 8),
+      materials.coatDark,
+      [0, -0.52 * c.legLength, 0]
+    );
+
+    const shin = new THREE.Group();
+    shin.position.y = -0.97 * c.legLength;
+    legRoot.add(shin);
+
+    addMesh(
+      shin,
+      new THREE.CapsuleGeometry(0.24, 0.52 * c.legLength, 4, 8),
+      materials.leatherDark,
+      [0, -0.37 * c.legLength, 0]
+    );
+
+    addMesh(
+      shin,
+      new THREE.BoxGeometry(0.52, 0.46, 0.86),
+      materials.boot,
+      [0, -0.82 * c.legLength, 0.18],
+      [-0.08, 0, 0]
+    );
+
+    addMesh(
+      shin,
+      new THREE.BoxGeometry(0.56, 0.12, 0.9),
+      materials.gold,
+      [0, -0.67 * c.legLength, 0.18]
+    );
+
+    return { root: legRoot, shin };
+  }
+
+  const leftLeg = createLeg(-1);
+  const rightLeg = createLeg(1);
+
+  // Sword and sheath
+  const swordGroup = new THREE.Group();
+  swordGroup.position.set(0.72, 0.15, -0.05);
+  swordGroup.rotation.z = -0.28;
+  swordGroup.scale.setScalar(c.swordScale);
+  swordGroup.visible = c.showSword;
+
+  addMesh(swordGroup, new THREE.BoxGeometry(0.19, 1.35, 0.13), materials.leatherDark, [0, -0.46, -0.02]);
+  addMesh(swordGroup, new THREE.BoxGeometry(0.14, 1.25, 0.07), materials.blade, [0, -0.39, 0.05]);
+  addMesh(swordGroup, new THREE.BoxGeometry(0.52, 0.12, 0.16), materials.gold, [0, 0.25, 0]);
+  addMesh(swordGroup, new THREE.CylinderGeometry(0.08, 0.08, 0.34, 8), materials.leather, [0, 0.43, 0]);
+  torso.add(swordGroup);
+
+  root.userData.parts = {
+    hips,
+    torso,
+    headRoot,
+    leftArm,
+    rightArm,
+    leftLeg,
+    rightLeg,
+    swordGroup,
+    hatGroup,
+    beardGroup,
+    eyePatch,
+    earring,
+    leftTail,
+    rightTail
+  };
+
+  return root;
+}
+
+
+    const canvas = document.getElementById("game-canvas");
+    const loadingPage = document.getElementById("loading-page");
+    const loadingStatus = document.getElementById("loading-status");
+    const loadingMessage = document.getElementById("loading-message");
+    const progressNumber = document.getElementById("progress-number");
+    const progressBar = document.getElementById("progress-bar");
+    const startGameButton = document.getElementById("start-game-button");
+    const stageIntro = document.getElementById("stage-intro");
+    const hud = document.getElementById("hud");
+    const missionPanel = document.getElementById("mission-panel");
+    const missionLabel = document.getElementById("mission-label");
+    const missionText = document.getElementById("mission-text");
+    const toastMessage = document.getElementById("toast-message");
+    const interactionPrompt = document.getElementById("interaction-prompt");
+    const touchControls = document.getElementById("touch-controls");
+    const joystickZone = document.getElementById("joystick-zone");
+    const joystickStick = document.getElementById("joystick-stick");
+    const interactionButton = document.getElementById("interaction-button");
+    const completeScreen = document.getElementById("complete-screen");
+
+    document.getElementById("debug-editor-button").addEventListener("click", () => {
+      window.location.href = "./editor.html";
+    });
+    document.getElementById("restart-button").addEventListener("click", () => location.reload());
+
+    const MODEL_BASE_PATH = "./assets/models/pirate/";
+    const PLAYER_BASE_Y = 2.16;
+    const PLAYER_SPEED = 7;
+    const INTERACTION_DISTANCE = 3.5;
+
+    const missions = [
+      { id: "wreck", text: "調查海岸邊的擱淺船", target: "wreck" },
+      { id: "supplies", text: "回收遺失的航海物資", target: "supply", required: 3 },
+      { id: "cannon", text: "使用物資修復岸防砲", target: "cannon" },
+      { id: "chest", text: "找到並開啟船長的寶箱", target: "chest" },
+      { id: "ship", text: "帶著寶藏返回海盜船", target: "ship" }
+    ];
+
+    const state = {
+      assetsReady: false,
+      started: false,
+      inputEnabled: false,
+      missionIndex: 0,
+      supplies: 0,
+      currentInteractable: null,
+      toastTimer: null,
+      interactionTimer: 0,
+      victoryTimer: 0
+    };
+
+    const input = {
+      up: false, down: false, left: false, right: false,
+      joyX: 0, joyY: 0, interact: false
+    };
+
+    const world = {
+      player: null,
+      water: null,
+      ship: null,
+      interactables: []
+    };
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x79c9dc);
+    scene.fog = new THREE.Fog(0x79c9dc, 38, 110);
+
+    const camera = new THREE.PerspectiveCamera(46, 1280 / 720, 0.1, 300);
+    camera.position.set(16, 20, 23);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setSize(1280, 720, false);
     renderer.shadowMap.enabled = true;
-
-    renderer.shadowMap.type =
-      THREE.PCFSoftShadowMap;
-
-    renderer.outputColorSpace =
-      THREE.SRGBColorSpace;
-
-    renderer.toneMapping =
-      THREE.ACESFilmicToneMapping;
-
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.05;
 
-    viewport.prepend(
-      renderer.domElement
-    );
+    const clock = new THREE.Clock();
+    const loadingManager = new THREE.LoadingManager();
+    const loader = new GLTFLoader(loadingManager);
 
-    const orbitControls =
-      new OrbitControls(
-        camera,
-        renderer.domElement
+    loadingManager.onProgress = (url, loaded, total) => {
+      const p = total ? Math.round((loaded / total) * 100) : 0;
+      setProgress(p);
+    };
+    loadingManager.onLoad = completeLoading;
+    loadingManager.onError = url => console.warn("模型載入失敗：", url);
+
+    function setProgress(value, message = null) {
+      const p = THREE.MathUtils.clamp(Math.round(value), 0, 100);
+      progressBar.style.width = `${p}%`;
+      progressNumber.textContent = `${p}%`;
+      if (message) loadingMessage.textContent = message;
+    }
+
+    function completeLoading() {
+      if (state.assetsReady) return;
+      state.assetsReady = true;
+      setProgress(100, "準備啟航");
+      setTimeout(() => {
+        loadingStatus.classList.add("hidden");
+        startGameButton.classList.add("visible");
+      }, 350);
+    }
+
+    function createLights() {
+      scene.add(new THREE.HemisphereLight(0xd7f7ff, 0x3a5031, 2.15));
+      const sun = new THREE.DirectionalLight(0xfff1ca, 3.3);
+      sun.position.set(-18, 34, 16);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.camera.left = -38;
+      sun.shadow.camera.right = 38;
+      sun.shadow.camera.top = 38;
+      sun.shadow.camera.bottom = -38;
+      scene.add(sun);
+    }
+
+    function createEnvironment() {
+      const water = new THREE.Mesh(
+        new THREE.PlaneGeometry(220, 220),
+        new THREE.MeshStandardMaterial({ color: 0x168faa, roughness: 0.28, metalness: 0.08 })
       );
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = -0.68;
+      water.receiveShadow = true;
+      scene.add(water);
+      world.water = water;
 
-    orbitControls.target.set(
-      0,
-      3.1,
-      0
-    );
-
-    orbitControls.enableDamping = true;
-    orbitControls.minDistance = 4;
-    orbitControls.maxDistance = 18;
-
-    const clock =
-      new THREE.Clock();
-
-    const hemisphere =
-      new THREE.HemisphereLight(
-        0xdaf6ff,
-        0x3a342d,
-        2.2
+      const sand = new THREE.Mesh(
+        new THREE.CylinderGeometry(17.5, 20, 2.2, 48),
+        new THREE.MeshStandardMaterial({ color: 0xe1be72, roughness: 0.94 })
       );
+      sand.scale.z = 0.74;
+      sand.castShadow = true;
+      sand.receiveShadow = true;
+      scene.add(sand);
 
-    scene.add(hemisphere);
-
-    const keyLight =
-      new THREE.DirectionalLight(
-        0xffedc6,
-        3
+      const grass = new THREE.Mesh(
+        new THREE.CylinderGeometry(13.7, 15.4, 1.18, 48),
+        new THREE.MeshStandardMaterial({ color: 0x66a955, roughness: 0.96 })
       );
+      grass.position.y = 1.62;
+      grass.scale.z = 0.72;
+      grass.castShadow = true;
+      grass.receiveShadow = true;
+      scene.add(grass);
 
-    keyLight.position.set(
-      -5,
-      10,
-      7
-    );
+      for (const [x,z,s] of [[-10,-4.8,1],[8.8,6.5,.8],[-5.4,8.4,.65],[6.4,-7.4,.9]]) {
+        const rock = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(1.4, 0),
+          new THREE.MeshStandardMaterial({ color: 0x747e78, roughness: 0.96 })
+        );
+        rock.position.set(x, 2.2, z);
+        rock.scale.set(s, s*.72, s*.9);
+        rock.rotation.set(Math.random(), Math.random(), Math.random());
+        rock.castShadow = true;
+        scene.add(rock);
+      }
+    }
 
-    keyLight.castShadow = true;
+    function createPlayer() {
+      const saved = localStorage.getItem("pirate-character-config");
+      let config = {};
+      try { config = saved ? JSON.parse(saved) : {}; } catch {}
+      world.player = createPirateCharacter(config);
+      world.player.position.set(0, PLAYER_BASE_Y, 6);
+      world.player.rotation.y = Math.PI;
+      scene.add(world.player);
+    }
 
-    scene.add(keyLight);
-
-    const floor =
-      new THREE.Mesh(
-        new THREE.CircleGeometry(
-          5.5,
-          48
-        ),
-        new THREE.MeshStandardMaterial({
-          color: 0x33454a,
-          roughness: 0.95
-        })
-      );
-
-    floor.rotation.x =
-      -Math.PI / 2;
-
-    floor.receiveShadow = true;
-
-    scene.add(floor);
-
-    const grid =
-      new THREE.GridHelper(
-        12,
-        24,
-        0x78919a,
-        0x42545c
-      );
-
-    grid.position.y = 0.01;
-
-    scene.add(grid);
-
-    function createMaterial(
-      color,
-      roughness = 0.78,
-      metalness = 0
-    ) {
-      return new THREE.MeshStandardMaterial({
-        color,
-        roughness,
-        metalness
+    function configureModel(model) {
+      model.traverse(child => {
+        if (!child.isMesh) return;
+        child.castShadow = true;
+        child.receiveShadow = true;
       });
     }
 
-    function createMesh(
-      geometry,
-      material,
-      position = new THREE.Vector3()
-    ) {
-      const object =
-        new THREE.Mesh(
-          geometry,
-          material
-        );
-
-      object.position.copy(
-        position
-      );
-
-      object.castShadow = true;
-      object.receiveShadow = true;
-
-      return object;
+    function loadModel(file, position, rotationY = 0, scale = 1) {
+      return new Promise((resolve, reject) => {
+        loader.load(MODEL_BASE_PATH + file, gltf => {
+          const model = gltf.scene;
+          configureModel(model);
+          model.position.copy(position);
+          model.rotation.y = rotationY;
+          model.scale.setScalar(scale);
+          scene.add(model);
+          resolve(model);
+        }, undefined, reject);
+      });
     }
 
-    function createCharacter() {
-      if (character) {
-        scene.remove(character);
-      }
-
-      const coatColor =
-        new THREE.Color(
-          config.coatColor
-        );
-
-      const leatherColor =
-        new THREE.Color(
-          config.leatherColor
-        );
-
-      const materials = {
-        coat:
-          createMaterial(
-            config.coatColor
-          ),
-
-        coatDark:
-          createMaterial(
-            coatColor.clone().multiplyScalar(0.58)
-          ),
-
-        shirt:
-          createMaterial(
-            config.shirtColor,
-            0.9
-          ),
-
-        skin:
-          createMaterial(
-            config.skinColor,
-            0.84
-          ),
-
-        leather:
-          createMaterial(
-            config.leatherColor,
-            0.86
-          ),
-
-        leatherDark:
-          createMaterial(
-            leatherColor.clone().multiplyScalar(0.5),
-            0.9
-          ),
-
-        hat:
-          createMaterial(
-            config.hatColor,
-            0.86
-          ),
-
-        beard:
-          createMaterial(
-            config.beardColor,
-            0.9
-          ),
-
-        gold:
-          createMaterial(
-            0xd2a84e,
-            0.42,
-            0.45
-          ),
-
-        eye:
-          createMaterial(
-            0x111318
-          ),
-
-        blade:
-          createMaterial(
-            0xbec7ca,
-            0.28,
-            0.75
-          )
-      };
-
-      const root =
-        new THREE.Group();
-
-      root.scale.set(
-        config.bodyWidth,
-        config.height,
-        1
-      );
-
-      const hips =
-        new THREE.Group();
-
-      hips.position.y = 2.05;
-
-      root.add(hips);
-
-      const torso =
-        new THREE.Group();
-
-      torso.position.y = 1.05;
-
-      hips.add(torso);
-
-      torso.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            1.25,
-            1.55,
-            0.75
-          ),
-          materials.shirt,
-          new THREE.Vector3(
-            0,
-            0.1,
-            0
-          )
-        )
-      );
-
-      torso.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.42,
-            1.65,
-            0.82
-          ),
-          materials.coat,
-          new THREE.Vector3(
-            -0.48,
-            0.06,
-            0.02
-          )
-        )
-      );
-
-      torso.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.42,
-            1.65,
-            0.82
-          ),
-          materials.coat,
-          new THREE.Vector3(
-            0.48,
-            0.06,
-            0.02
-          )
-        )
-      );
-
-      torso.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            1.38,
-            0.26,
-            0.84
-          ),
-          materials.leather,
-          new THREE.Vector3(
-            0,
-            -0.58,
-            0.02
-          )
-        )
-      );
-
-      torso.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.35,
-            0.35,
-            0.12
-          ),
-          materials.gold,
-          new THREE.Vector3(
-            0,
-            -0.58,
-            0.48
-          )
-        )
-      );
-
-      for (
-        const y of [
-          0.45,
-          0.05,
-          -0.35
-        ]
-      ) {
-        torso.add(
-          createMesh(
-            new THREE.SphereGeometry(
-              0.08,
-              8,
-              6
-            ),
-            materials.gold,
-            new THREE.Vector3(
-              0,
-              y,
-              0.47
-            )
-          )
-        );
-      }
-
-      const headRoot =
-        new THREE.Group();
-
-      headRoot.position.set(
-        0,
-        1.55,
-        0
-      );
-
-      headRoot.scale.setScalar(
-        config.headScale
-      );
-
-      torso.add(headRoot);
-
-      const head =
-        createMesh(
-          new THREE.DodecahedronGeometry(
-            0.56,
-            1
-          ),
-          materials.skin
-        );
-
-      head.scale.set(
-        0.95,
-        1.05,
-        0.92
-      );
-
-      headRoot.add(head);
-
-      headRoot.add(
-        createMesh(
-          new THREE.SphereGeometry(
-            0.055,
-            8,
-            6
-          ),
-          materials.eye,
-          new THREE.Vector3(
-            -0.2,
-            0.12,
-            0.48
-          )
-        )
-      );
-
-      headRoot.add(
-        createMesh(
-          new THREE.SphereGeometry(
-            0.055,
-            8,
-            6
-          ),
-          materials.eye,
-          new THREE.Vector3(
-            0.2,
-            0.12,
-            0.48
-          )
-        )
-      );
-
-      const nose =
-        createMesh(
-          new THREE.ConeGeometry(
-            0.13,
-            0.28,
-            5
-          ),
-          materials.skin,
-          new THREE.Vector3(
-            0,
-            -0.02,
-            0.53
-          )
-        );
-
-      nose.rotation.x =
-        Math.PI / 2;
-
-      headRoot.add(nose);
-
-      const beard =
-        new THREE.Group();
-
-      beard.visible =
-        config.showBeard;
-
-      beard.scale.setScalar(
-        config.beardScale
-      );
-
-      beard.add(
-        createMesh(
-          new THREE.ConeGeometry(
-            0.48,
-            0.72,
-            7
-          ),
-          materials.beard,
-          new THREE.Vector3(
-            0,
-            -0.45,
-            0.18
-          )
-        )
-      );
-
-      const moustacheLeft =
-        createMesh(
-          new THREE.ConeGeometry(
-            0.1,
-            0.35,
-            5
-          ),
-          materials.beard,
-          new THREE.Vector3(
-            -0.12,
-            -0.1,
-            0.52
-          )
-        );
-
-      moustacheLeft.rotation.set(
-        Math.PI / 2,
-        0,
-        -1.05
-      );
-
-      beard.add(
-        moustacheLeft
-      );
-
-      const moustacheRight =
-        createMesh(
-          new THREE.ConeGeometry(
-            0.1,
-            0.35,
-            5
-          ),
-          materials.beard,
-          new THREE.Vector3(
-            0.12,
-            -0.1,
-            0.52
-          )
-        );
-
-      moustacheRight.rotation.set(
-        Math.PI / 2,
-        0,
-        1.05
-      );
-
-      beard.add(
-        moustacheRight
-      );
-
-      headRoot.add(beard);
-
-      const hat =
-        new THREE.Group();
-
-      hat.position.y = 0.55;
-
-      hat.scale.setScalar(
-        config.hatScale
-      );
-
-      hat.visible =
-        config.showHat;
-
-      hat.add(
-        createMesh(
-          new THREE.CylinderGeometry(
-            0.7,
-            0.8,
-            0.18,
-            10
-          ),
-          materials.hat
-        )
-      );
-
-      const hatCrown =
-        createMesh(
-          new THREE.ConeGeometry(
-            0.66,
-            0.74,
-            3
-          ),
-          materials.hat,
-          new THREE.Vector3(
-            0,
-            0.36,
-            0
-          )
-        );
-
-      hatCrown.rotation.y =
-        Math.PI / 2;
-
-      hat.add(hatCrown);
-
-      hat.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.9,
-            0.12,
-            0.08
-          ),
-          materials.gold,
-          new THREE.Vector3(
-            0,
-            0.25,
-            0.49
-          )
-        )
-      );
-
-      headRoot.add(hat);
-
-      function createArm(side) {
-        const armRoot =
-          new THREE.Group();
-
-        armRoot.position.set(
-          side * 0.84,
-          0.88,
-          0
-        );
-
-        torso.add(armRoot);
-
-        armRoot.add(
-          createMesh(
-            new THREE.CapsuleGeometry(
-              0.22,
-              0.62 * config.armLength,
-              4,
-              8
-            ),
-            materials.coat,
-            new THREE.Vector3(
-              0,
-              -0.45 * config.armLength,
-              0
-            )
-          )
-        );
-
-        const forearm =
-          new THREE.Group();
-
-        forearm.position.y =
-          -0.9 * config.armLength;
-
-        armRoot.add(forearm);
-
-        forearm.add(
-          createMesh(
-            new THREE.CapsuleGeometry(
-              0.19,
-              0.52 * config.armLength,
-              4,
-              8
-            ),
-            materials.coatDark,
-            new THREE.Vector3(
-              0,
-              -0.37 * config.armLength,
-              0
-            )
-          )
-        );
-
-        forearm.add(
-          createMesh(
-            new THREE.DodecahedronGeometry(
-              0.22,
-              0
-            ),
-            materials.skin,
-            new THREE.Vector3(
-              0,
-              -0.78 * config.armLength,
-              0
-            )
-          )
-        );
-
-        return {
-          root: armRoot,
-          forearm
-        };
-      }
-
-      const leftArm =
-        createArm(-1);
-
-      const rightArm =
-        createArm(1);
-
-      function createLeg(side) {
-        const legRoot =
-          new THREE.Group();
-
-        legRoot.position.set(
-          side * 0.35,
-          -0.08,
-          0
-        );
-
-        hips.add(legRoot);
-
-        legRoot.add(
-          createMesh(
-            new THREE.CapsuleGeometry(
-              0.27,
-              0.68 * config.legLength,
-              4,
-              8
-            ),
-            materials.coatDark,
-            new THREE.Vector3(
-              0,
-              -0.55 * config.legLength,
-              0
-            )
-          )
-        );
-
-        const shin =
-          new THREE.Group();
-
-        shin.position.y =
-          -1 * config.legLength;
-
-        legRoot.add(shin);
-
-        shin.add(
-          createMesh(
-            new THREE.CapsuleGeometry(
-              0.23,
-              0.58 * config.legLength,
-              4,
-              8
-            ),
-            materials.leatherDark,
-            new THREE.Vector3(
-              0,
-              -0.42 * config.legLength,
-              0
-            )
-          )
-        );
-
-        shin.add(
-          createMesh(
-            new THREE.BoxGeometry(
-              0.5,
-              0.42,
-              0.82
-            ),
-            materials.hat,
-            new THREE.Vector3(
-              0,
-              -0.86 * config.legLength,
-              0.18
-            )
-          )
-        );
-
-        return {
-          root: legRoot,
-          shin
-        };
-      }
-
-      const leftLeg =
-        createLeg(-1);
-
-      const rightLeg =
-        createLeg(1);
-
-      const sword =
-        new THREE.Group();
-
-      sword.position.set(
-        0.72,
-        0.2,
-        -0.05
-      );
-
-      sword.rotation.z =
-        -0.28;
-
-      sword.scale.setScalar(
-        config.swordScale
-      );
-
-      sword.visible =
-        config.showSword;
-
-      torso.add(sword);
-
-      sword.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.16,
-            1.25,
-            0.08
-          ),
-          materials.blade,
-          new THREE.Vector3(
-            0,
-            -0.4,
-            0
-          )
-        )
-      );
-
-      sword.add(
-        createMesh(
-          new THREE.BoxGeometry(
-            0.52,
-            0.12,
-            0.16
-          ),
-          materials.gold,
-          new THREE.Vector3(
-            0,
-            0.25,
-            0
-          )
-        )
-      );
-
-      character = root;
-
-      parts = {
-        hips,
-        torso,
-        headRoot,
-        leftArm,
-        rightArm,
-        leftLeg,
-        rightLeg,
-        hat,
-        beard,
-        sword
-      };
-
-      scene.add(character);
+    function fallbackObject(position, color, size) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(...size), new THREE.MeshStandardMaterial({color, roughness:.85}));
+      m.position.copy(position);
+      m.castShadow = true;
+      scene.add(m);
+      return m;
     }
 
-    function resetRotation(object) {
-      object.rotation.set(
-        0,
-        0,
-        0
+    function markerFor(object) {
+      const marker = new THREE.Group();
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(.75,.07,10,28),
+        new THREE.MeshBasicMaterial({color:0xf2d271,transparent:true,opacity:.8})
       );
+      ring.rotation.x = Math.PI/2;
+      marker.add(ring);
+      const beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(.08,.25,2.4,10,1,true),
+        new THREE.MeshBasicMaterial({color:0xf2d271,transparent:true,opacity:.2,side:THREE.DoubleSide})
+      );
+      beam.position.y = 1.2;
+      marker.add(beam);
+      marker.visible = false;
+      object.add(marker);
+      object.userData.marker = marker;
     }
 
-    function applyPose(time) {
-      if (!parts) {
+    function register(object, type, label) {
+      object.userData.type = type;
+      object.userData.label = label;
+      object.userData.active = true;
+      markerFor(object);
+      world.interactables.push(object);
+    }
+
+    async function createMissionObjects() {
+      let wreck;
+      try {
+        wreck = await loadModel("ship-wreck.glb", new THREE.Vector3(-11.8,1.3,5.8), .5, 1.55);
+      } catch {
+        wreck = fallbackObject(new THREE.Vector3(-11.8,2.2,5.8),0x6b3b21,[5.5,1.5,2.2]);
+      }
+      register(wreck,"wreck","調查擱淺船");
+
+      for (const p of [new THREE.Vector3(-6,2.2,-2),new THREE.Vector3(5.8,2.2,3.6),new THREE.Vector3(8,2.2,-5.2)]) {
+        let barrel;
+        try { barrel = await loadModel("barrel.glb",p,Math.random()*Math.PI*2,1.4); }
+        catch {
+          barrel = new THREE.Mesh(new THREE.CylinderGeometry(.58,.67,1.42,12),new THREE.MeshStandardMaterial({color:0x754525,roughness:.86}));
+          barrel.position.copy(p);
+          scene.add(barrel);
+        }
+        register(barrel,"supply","回收航海物資");
+      }
+
+      let cannon;
+      try { cannon = await loadModel("cannon.glb",new THREE.Vector3(7.8,2.2,.2),-.8,1.7); }
+      catch { cannon = fallbackObject(new THREE.Vector3(7.8,2.8,.2),0x36393c,[2.8,1.2,1.2]); }
+      register(cannon,"cannon","修復岸防砲");
+
+      let chest;
+      try { chest = await loadModel("chest.glb",new THREE.Vector3(0,2.24,-6.6),Math.PI,1.8); }
+      catch { chest = fallbackObject(new THREE.Vector3(0,2.8,-6.6),0x724222,[2,1.2,1.3]); }
+      register(chest,"chest","開啟船長寶箱");
+
+      let ship;
+      try { ship = await loadModel("ship-pirate-small.glb",new THREE.Vector3(17.8,-.22,-8.5),-Math.PI/2.5,1.8); }
+      catch { ship = fallbackObject(new THREE.Vector3(17.8,.25,-8.5),0x603719,[8,2,3]); }
+      register(ship,"ship","返回海盜船");
+      world.ship = ship;
+    }
+
+    function updateMissionUI() {
+      const mission = missions[state.missionIndex];
+      if (!mission) return;
+      missionLabel.textContent = `MISSION ${state.missionIndex+1} / ${missions.length}`;
+      missionText.textContent = mission.id === "supplies"
+        ? `${mission.text} ${state.supplies}/${mission.required}`
+        : mission.text;
+      for (const object of world.interactables) {
+        if (object.userData.marker) {
+          object.userData.marker.visible = object.userData.active && object.userData.type === mission.target;
+        }
+      }
+    }
+
+    function currentMovement() {
+      let x = (input.right?1:0) - (input.left?1:0) + input.joyX;
+      let z = (input.down?1:0) - (input.up?1:0) + input.joyY;
+      const v = new THREE.Vector2(x,z);
+      if (v.length()>1) v.normalize();
+      return v;
+    }
+
+    function animatePlayer(delta) {
+      if (!world.player || !state.inputEnabled) return;
+      const v = currentMovement();
+      const parts = world.player.userData.parts;
+      const moving = v.length() > .04;
+
+      if (moving) {
+        world.player.position.x += v.x * PLAYER_SPEED * delta;
+        world.player.position.z += v.y * PLAYER_SPEED * delta;
+        const target = Math.atan2(v.x,v.y);
+        world.player.rotation.y += ((((target-world.player.rotation.y)+Math.PI)%(Math.PI*2))-Math.PI) * Math.min(1,delta*12);
+      }
+
+      const n = Math.sqrt((world.player.position.x**2)/(14.7**2)+(world.player.position.z**2)/(10.5**2));
+      if (n>1) {
+        world.player.position.x /= n;
+        world.player.position.z /= n;
+      }
+
+      const t = clock.elapsedTime;
+      if (moving) {
+        const s = Math.sin(t*9)*.72;
+        parts.leftArm.root.rotation.x = s;
+        parts.rightArm.root.rotation.x = -s;
+        parts.leftLeg.root.rotation.x = -s*.82;
+        parts.rightLeg.root.rotation.x = s*.82;
+        parts.torso.rotation.z = Math.sin(t*9)*.025;
+        world.player.position.y = PLAYER_BASE_Y + Math.abs(Math.sin(t*9))*.08;
+      } else {
+        parts.leftArm.root.rotation.x = THREE.MathUtils.lerp(parts.leftArm.root.rotation.x,.05+Math.sin(t*2.2)*.025,delta*7);
+        parts.rightArm.root.rotation.x = THREE.MathUtils.lerp(parts.rightArm.root.rotation.x,-.05-Math.sin(t*2.2)*.025,delta*7);
+        parts.leftLeg.root.rotation.x = THREE.MathUtils.lerp(parts.leftLeg.root.rotation.x,0,delta*8);
+        parts.rightLeg.root.rotation.x = THREE.MathUtils.lerp(parts.rightLeg.root.rotation.x,0,delta*8);
+        parts.torso.rotation.z = THREE.MathUtils.lerp(parts.torso.rotation.z,0,delta*8);
+        world.player.position.y = THREE.MathUtils.lerp(world.player.position.y,PLAYER_BASE_Y+Math.sin(t*2.2)*.025,delta*6);
+      }
+      parts.headRoot.rotation.y = Math.sin(t*.8)*.06;
+
+      if (state.interactionTimer>0) {
+        state.interactionTimer -= delta;
+        parts.rightArm.root.rotation.x = -1.25;
+        parts.rightArm.forearm.rotation.x = -.5;
+      } else {
+        parts.rightArm.forearm.rotation.x = THREE.MathUtils.lerp(parts.rightArm.forearm.rotation.x,0,delta*9);
+      }
+
+      if (state.victoryTimer>0) {
+        state.victoryTimer -= delta;
+        parts.rightArm.root.rotation.x = -2.3;
+        parts.leftArm.root.rotation.x = -1.1;
+      }
+    }
+
+    function interact() {
+      const object = state.currentInteractable;
+      if (!object) {
+        showToast("附近沒有可以互動的物件");
+        return;
+      }
+      const mission = missions[state.missionIndex];
+      state.interactionTimer = .45;
+
+      if (object.userData.type !== mission.target) {
+        showToast("請先完成目前任務");
         return;
       }
 
-      [
-        parts.leftArm.root,
-        parts.rightArm.root,
-        parts.leftArm.forearm,
-        parts.rightArm.forearm,
-        parts.leftLeg.root,
-        parts.rightLeg.root,
-        parts.torso,
-        parts.headRoot
-      ].forEach(
-        resetRotation
-      );
+      if (mission.id === "supplies") {
+        object.userData.active = false;
+        object.visible = false;
+        state.supplies += 1;
+        showToast(`取得航海物資 ${state.supplies}/3`);
+        updateMissionUI();
+        if (state.supplies >= 3) setTimeout(advanceMission,450);
+        return;
+      }
 
-      parts.torso.position.y = 0;
+      if (mission.id === "wreck") showToast("找到船長日誌：寶藏藏在島嶼深處");
+      if (mission.id === "cannon") showToast("岸防砲修復完成，寶藏區已解鎖");
+      if (mission.id === "chest") showToast("取得古老金幣 × 100、失落羅盤 × 1");
+      if (mission.id === "ship") {
+        completeChapter();
+        return;
+      }
+      advanceMission();
+    }
 
-      switch (config.pose) {
-        case "walk": {
-          const swing =
-            Math.sin(time * 5.5) *
-            0.75;
+    function advanceMission() {
+      state.missionIndex += 1;
+      updateMissionUI();
+      const mission = missions[state.missionIndex];
+      if (mission) setTimeout(()=>showToast(`新任務：${mission.text}`),300);
+    }
 
-          parts.leftArm.root.rotation.x =
-            swing;
+    function completeChapter() {
+      state.inputEnabled = false;
+      state.victoryTimer = 2;
+      touchControls.classList.remove("visible");
+      completeScreen.classList.add("visible");
+    }
 
-          parts.rightArm.root.rotation.x =
-            -swing;
+    function showToast(text) {
+      toastMessage.textContent = text;
+      toastMessage.classList.add("visible");
+      clearTimeout(state.toastTimer);
+      state.toastTimer = setTimeout(()=>toastMessage.classList.remove("visible"),2200);
+    }
 
-          parts.leftLeg.root.rotation.x =
-            -swing * 0.85;
-
-          parts.rightLeg.root.rotation.x =
-            swing * 0.85;
-
-          parts.torso.rotation.z =
-            Math.sin(time * 5.5) *
-            0.03;
-
-          parts.torso.position.y =
-            Math.abs(
-              Math.sin(time * 5.5)
-            ) * 0.05;
-
-          break;
+    function updateInteraction() {
+      if (!state.inputEnabled) return;
+      state.currentInteractable = null;
+      let nearest = Infinity;
+      for (const object of world.interactables) {
+        if (!object.userData.active || !object.visible) continue;
+        const d = world.player.position.distanceTo(object.position);
+        if (d < nearest && d <= INTERACTION_DISTANCE) {
+          nearest = d;
+          state.currentInteractable = object;
         }
+        if (object.userData.marker?.visible) {
+          object.userData.marker.rotation.y += .025;
+          object.userData.marker.position.y = Math.sin(clock.elapsedTime*2.2)*.16;
+        }
+      }
+      if (state.currentInteractable) {
+        interactionPrompt.textContent = `${matchMedia("(pointer:coarse)").matches?"點擊互動":"按 E"}：${state.currentInteractable.userData.label}`;
+        interactionPrompt.classList.add("visible");
+      } else interactionPrompt.classList.remove("visible");
 
-        case "interact":
-          parts.rightArm.root.rotation.x =
-            -1.35;
-
-          parts.rightArm.forearm.rotation.x =
-            -0.55;
-
-          parts.headRoot.rotation.y =
-            -0.16;
-
-          break;
-
-        case "victory":
-          parts.rightArm.root.rotation.x =
-            -2.35;
-
-          parts.rightArm.root.rotation.z =
-            -0.2;
-
-          parts.leftArm.root.rotation.x =
-            -1.1;
-
-          parts.torso.rotation.z =
-            Math.sin(time * 4) *
-            0.05;
-
-          break;
-
-        case "idle":
-        default:
-          parts.torso.position.y =
-            Math.sin(time * 2) *
-            0.025;
-
-          parts.headRoot.rotation.y =
-            Math.sin(time * 0.8) *
-            0.06;
-
-          break;
+      if (input.interact) {
+        input.interact = false;
+        interact();
       }
     }
 
-    const inputBindings = [
-      {
-        id: "height",
-        key: "height",
-        type: "number"
-      },
-      {
-        id: "body-width",
-        key: "bodyWidth",
-        type: "number"
-      },
-      {
-        id: "head-scale",
-        key: "headScale",
-        type: "number"
-      },
-      {
-        id: "arm-length",
-        key: "armLength",
-        type: "number"
-      },
-      {
-        id: "leg-length",
-        key: "legLength",
-        type: "number"
-      },
-      {
-        id: "beard-scale",
-        key: "beardScale",
-        type: "number"
-      },
-      {
-        id: "hat-scale",
-        key: "hatScale",
-        type: "number"
-      },
-      {
-        id: "sword-scale",
-        key: "swordScale",
-        type: "number"
-      },
-      {
-        id: "show-hat",
-        key: "showHat",
-        type: "boolean"
-      },
-      {
-        id: "show-beard",
-        key: "showBeard",
-        type: "boolean"
-      },
-      {
-        id: "show-sword",
-        key: "showSword",
-        type: "boolean"
-      },
-      {
-        id: "coat-color",
-        key: "coatColor",
-        type: "string"
-      },
-      {
-        id: "shirt-color",
-        key: "shirtColor",
-        type: "string"
-      },
-      {
-        id: "skin-color",
-        key: "skinColor",
-        type: "string"
-      },
-      {
-        id: "leather-color",
-        key: "leatherColor",
-        type: "string"
-      },
-      {
-        id: "hat-color",
-        key: "hatColor",
-        type: "string"
-      },
-      {
-        id: "beard-color",
-        key: "beardColor",
-        type: "string"
-      },
-      {
-        id: "pose",
-        key: "pose",
-        type: "string"
+    function updateCamera(delta) {
+      if (!world.player) return;
+      const target = new THREE.Vector3(world.player.position.x+15,19,world.player.position.z+20);
+      camera.position.lerp(target,Math.min(1,delta*3.4));
+      camera.lookAt(world.player.position.x,2.8,world.player.position.z-1.8);
+    }
+
+    function bindInput() {
+      const map = {
+        KeyW:"up",ArrowUp:"up",KeyS:"down",ArrowDown:"down",
+        KeyA:"left",ArrowLeft:"left",KeyD:"right",ArrowRight:"right"
+      };
+      addEventListener("keydown",e=>{
+        if (map[e.code]) { input[map[e.code]]=true; e.preventDefault(); }
+        if (e.code==="KeyE" || e.code==="Space") { input.interact=true; e.preventDefault(); }
+      });
+      addEventListener("keyup",e=>{ if (map[e.code]) input[map[e.code]]=false; });
+
+      let pointer = null;
+      const resetJoy = ()=>{ input.joyX=0; input.joyY=0; joystickStick.style.transform="translate(-50%,-50%)"; };
+      const updateJoy = e=>{
+        const r=joystickZone.getBoundingClientRect();
+        const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2);
+        const max=r.width*.28, dist=Math.min(Math.hypot(dx,dy),max), a=Math.atan2(dy,dx);
+        const x=Math.cos(a)*dist, y=Math.sin(a)*dist;
+        input.joyX=x/max; input.joyY=y/max;
+        joystickStick.style.transform=`translate(calc(-50% + ${x}px),calc(-50% + ${y}px))`;
+      };
+      joystickZone.addEventListener("pointerdown",e=>{pointer=e.pointerId;joystickZone.setPointerCapture(pointer);updateJoy(e);});
+      joystickZone.addEventListener("pointermove",e=>{if(e.pointerId===pointer)updateJoy(e);});
+      joystickZone.addEventListener("pointerup",()=>{pointer=null;resetJoy();});
+      joystickZone.addEventListener("pointercancel",()=>{pointer=null;resetJoy();});
+      interactionButton.addEventListener("pointerdown",()=>input.interact=true);
+    }
+
+    function updateOrientation() {
+      document.getElementById("orientation-screen").classList.toggle(
+        "visible",
+        matchMedia("(pointer:coarse)").matches && innerHeight>innerWidth
+      );
+    }
+    addEventListener("resize",updateOrientation);
+    updateOrientation();
+
+    startGameButton.addEventListener("click",()=>{
+      if (!state.assetsReady || state.started) return;
+      state.started = true;
+      loadingPage.classList.add("hidden");
+      setTimeout(()=>{
+        stageIntro.classList.add("visible");
+        setTimeout(()=>stageIntro.classList.add("fade-out"),1500);
+        setTimeout(()=>{
+          stageIntro.classList.remove("visible","fade-out");
+          state.inputEnabled = true;
+          hud.classList.add("visible");
+          missionPanel.classList.add("visible");
+          if (matchMedia("(pointer:coarse)").matches) touchControls.classList.add("visible");
+          updateMissionUI();
+        },2050);
+      },420);
+    });
+
+    async function init() {
+      setProgress(5,"正在建立海上環境……");
+      createLights();
+      createEnvironment();
+      createPlayer();
+      setProgress(18,"正在準備寶藏島……");
+      await Promise.allSettled([createMissionObjects()]);
+      setTimeout(completeLoading,250);
+      bindInput();
+    }
+    init().catch(error=>{console.error(error);completeLoading();});
+
+    function loop() {
+      requestAnimationFrame(loop);
+      const delta=Math.min(clock.getDelta(),.05);
+      animatePlayer(delta);
+      updateInteraction();
+      updateCamera(delta);
+      if (world.water) world.water.position.y=-.68+Math.sin(clock.elapsedTime*.7)*.025;
+      if (world.ship) {
+        world.ship.position.y=-.22+Math.sin(clock.elapsedTime*1.15)*.16;
+        world.ship.rotation.z=Math.sin(clock.elapsedTime*.8)*.018;
       }
-    ];
-
-    for (
-      const binding of inputBindings
-    ) {
-      const element =
-        document.getElementById(
-          binding.id
-        );
-
-      element.addEventListener(
-        "input",
-        () => {
-          if (
-            binding.type ===
-            "number"
-          ) {
-            config[binding.key] =
-              Number(
-                element.value
-              );
-          } else if (
-            binding.type ===
-            "boolean"
-          ) {
-            config[binding.key] =
-              element.checked;
-          } else {
-            config[binding.key] =
-              element.value;
-          }
-
-          const output =
-            element.parentElement
-              ?.querySelector(
-                "output"
-              );
-
-          if (
-            output &&
-            binding.type ===
-              "number"
-          ) {
-            output.textContent =
-              Number(
-                element.value
-              ).toFixed(2);
-          }
-
-          createCharacter();
-        }
-      );
+      renderer.render(scene,camera);
     }
-
-    function syncInterface() {
-      for (
-        const binding of inputBindings
-      ) {
-        const element =
-          document.getElementById(
-            binding.id
-          );
-
-        if (
-          binding.type ===
-          "boolean"
-        ) {
-          element.checked =
-            Boolean(
-              config[binding.key]
-            );
-        } else {
-          element.value =
-            config[binding.key];
-        }
-
-        const output =
-          element.parentElement
-            ?.querySelector(
-              "output"
-            );
-
-        if (
-          output &&
-          binding.type ===
-            "number"
-        ) {
-          output.textContent =
-            Number(
-              config[binding.key]
-            ).toFixed(2);
-        }
-      }
-    }
-
-    function getConfigurationJson() {
-      return JSON.stringify(
-        config,
-        null,
-        2
-      );
-    }
-
-    function setStatus(
-      text,
-      isError = false
-    ) {
-      statusElement.textContent =
-        text;
-
-      statusElement.style.color =
-        isError
-          ? "#ef9a9a"
-          : "#9ed7ae";
-    }
-
-    function downloadFile(
-      fileName,
-      content,
-      type
-    ) {
-      const blob =
-        new Blob(
-          [
-            content
-          ],
-          {
-            type
-          }
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob
-        );
-
-      const link =
-        document.createElement(
-          "a"
-        );
-
-      link.href = url;
-      link.download = fileName;
-
-      link.click();
-
-      URL.revokeObjectURL(
-        url
-      );
-    }
-
-    document
-      .getElementById("reset")
-      .addEventListener(
-        "click",
-        () => {
-          config = {
-            ...defaults
-          };
-
-          syncInterface();
-          createCharacter();
-          setStatus(
-            "已重設角色"
-          );
-        }
-      );
-
-    document
-      .getElementById("copy-json")
-      .addEventListener(
-        "click",
-        async () => {
-          try {
-            await navigator.clipboard.writeText(
-              getConfigurationJson()
-            );
-
-            setStatus(
-              "JSON 已複製"
-            );
-          } catch {
-            setStatus(
-              "瀏覽器禁止複製，請使用下載 JSON",
-              true
-            );
-          }
-        }
-      );
-
-    document
-      .getElementById("download-json")
-      .addEventListener(
-        "click",
-        () => {
-          downloadFile(
-            "pirate-character.json",
-            getConfigurationJson(),
-            "application/json"
-          );
-
-          setStatus(
-            "已下載 JSON"
-          );
-        }
-      );
-
-    document
-      .getElementById("download-code")
-      .addEventListener(
-        "click",
-        () => {
-          const source =
-            `export const PIRATE_CHARACTER_CONFIG = ${getConfigurationJson()};\n`;
-
-          downloadFile(
-            "pirate-character-config.js",
-            source,
-            "text/javascript"
-          );
-
-          setStatus(
-            "已下載角色設定 JS"
-          );
-        }
-      );
-
-    function setView(
-      x,
-      y,
-      z
-    ) {
-      camera.position.set(
-        x,
-        y,
-        z
-      );
-
-      orbitControls.target.set(
-        0,
-        3.1,
-        0
-      );
-
-      orbitControls.update();
-    }
-
-    document
-      .getElementById("front-view")
-      .addEventListener(
-        "click",
-        () => {
-          setView(
-            0,
-            4.3,
-            9
-          );
-        }
-      );
-
-    document
-      .getElementById("side-view")
-      .addEventListener(
-        "click",
-        () => {
-          setView(
-            9,
-            4.3,
-            0
-          );
-        }
-      );
-
-    document
-      .getElementById("back-view")
-      .addEventListener(
-        "click",
-        () => {
-          setView(
-            0,
-            4.3,
-            -9
-          );
-        }
-      );
-
-    document
-      .getElementById("toggle-grid")
-      .addEventListener(
-        "click",
-        () => {
-          grid.visible =
-            !grid.visible;
-        }
-      );
-
-    function resizeRenderer() {
-      const rect =
-        viewport.getBoundingClientRect();
-
-      renderer.setSize(
-        rect.width,
-        rect.height,
-        false
-      );
-
-      camera.aspect =
-        rect.width /
-        rect.height;
-
-      camera.updateProjectionMatrix();
-    }
-
-    window.addEventListener(
-      "resize",
-      resizeRenderer
-    );
-
-    syncInterface();
-    createCharacter();
-    resizeRenderer();
-
-    function animate() {
-      requestAnimationFrame(
-        animate
-      );
-
-      applyPose(
-        clock.getElapsedTime()
-      );
-
-      orbitControls.update();
-
-      renderer.render(
-        scene,
-        camera
-      );
-    }
-
-    animate();
+    loop();
   </script>
 </body>
 </html>
