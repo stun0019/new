@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+  >
+  <title>Pirate Character Editor</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+
+      background: #0a1118;
+      color: #ffffff;
+
+      font-family:
+        Arial,
+        "Microsoft JhengHei",
+        sans-serif;
+    }
+
+    body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    #viewport {
+      position: relative;
+      min-width: 0;
+      overflow: hidden;
+
+      background:
+        radial-gradient(
+          circle at 50% 35%,
+          #243a49 0%,
+          #101b25 48%,
+          #091018 100%
+        );
+    }
+
+    #viewport canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    #top-toolbar {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 20;
+
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .toolbar-button {
+      min-width: 74px;
+      padding: 9px 13px;
+
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+
+      color: #ffffff;
+
+      background: rgba(12, 24, 34, 0.82);
+
+      backdrop-filter: blur(8px);
+    }
+
+    .toolbar-button:hover {
+      border-color: rgba(255, 255, 255, 0.42);
+      background: rgba(27, 44, 57, 0.9);
+    }
+
+    #back-to-game {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+
+      padding: 9px 14px;
+
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+
+      color: #ffffff;
+      text-decoration: none;
+
+      background: rgba(112, 54, 34, 0.86);
+
+      backdrop-filter: blur(8px);
+    }
+
+    #view-hint {
+      position: absolute;
+      left: 50%;
+      bottom: 16px;
+      z-index: 20;
+
+      padding: 7px 12px;
+
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+
+      color: rgba(255, 255, 255, 0.56);
+
+      background: rgba(4, 10, 15, 0.54);
+
+      font-size: 12px;
+      text-align: center;
+
+      transform: translateX(-50%);
+
+      backdrop-filter: blur(7px);
+    }
+
+    #panel {
+      height: 100%;
+      overflow-y: auto;
+
+      padding: 18px;
+
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+
+      background: #111a23;
+    }
+
+    #panel h1 {
+      margin-bottom: 5px;
+
+      font-size: 21px;
+    }
+
+    .subtitle {
+      margin-bottom: 18px;
+
+      color: rgba(255, 255, 255, 0.56);
+
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .section {
+      margin-bottom: 18px;
+      padding-bottom: 16px;
+
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .section h2 {
+      margin-bottom: 12px;
+
+      color: #e7c77d;
+
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr) 48px;
+      align-items: center;
+
+      gap: 9px;
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      color: rgba(255, 255, 255, 0.8);
+
+      font-size: 13px;
+    }
+
+    .field output {
+      color: rgba(255, 255, 255, 0.58);
+
+      font-size: 12px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+
+      accent-color: #d4ad58;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 32px;
+
+      border: 0;
+      border-radius: 6px;
+
+      background: transparent;
+    }
+
+    select {
+      width: 100%;
+
+      padding: 9px;
+
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+
+      color: #ffffff;
+
+      background: #192733;
+    }
+
+    .toggle-field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 12px;
+      margin-bottom: 10px;
+
+      color: rgba(255, 255, 255, 0.8);
+
+      font-size: 13px;
+    }
+
+    .toggle-field input {
+      width: 18px;
+      height: 18px;
+
+      accent-color: #d4ad58;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+
+      gap: 8px;
+    }
+
+    .action-button {
+      padding: 10px 8px;
+
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+
+      color: #ffffff;
+
+      background: #233441;
+    }
+
+    .action-button.primary {
+      background:
+        linear-gradient(
+          180deg,
+          #b58a43,
+          #6c4925
+        );
+    }
+
+    #status {
+      min-height: 20px;
+      margin-top: 10px;
+
+      color: #9ed7ae;
+
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56vh 44vh;
+      }
+
+      #panel {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 0;
+      }
+
+      .field {
+        grid-template-columns: 100px minmax(0, 1fr) 44px;
+      }
+
+      #view-hint {
+        bottom: 10px;
+
+        width: max-content;
+        max-width: 78%;
+
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main id="viewport">
+    <div id="top-toolbar">
+      <button id="front-view" class="toolbar-button" type="button">
+        正面
+      </button>
+
+      <button id="side-view" class="toolbar-button" type="button">
+        側面
+      </button>
+
+      <button id="back-view" class="toolbar-button" type="button">
+        背面
+      </button>
+
+      <button id="toggle-grid" class="toolbar-button" type="button">
+        格線
+      </button>
+    </div>
+
+    <a id="back-to-game" href="./index.html">
+      返回遊戲
+    </a>
+
+    <div id="view-hint">
+      左鍵旋轉｜滾輪縮放｜右鍵平移
+    </div>
+  </main>
+
+  <aside id="panel">
+    <h1>海盜角色編輯器</h1>
+
+    <div class="subtitle">
+      即時調整 Three.js 低多邊形角色。設定可匯出為 JSON，
+      後續再讓遊戲讀取同一份角色資料。
+    </div>
+
+    <section class="section">
+      <h2>整體比例</h2>
+
+      <div class="field">
+        <label for="height">角色高度</label>
+        <input id="height" type="range" min="0.75" max="1.35" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="body-width">身體寬度</label>
+        <input id="body-width" type="range" min="0.7" max="1.4" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="head-scale">頭部大小</label>
+        <input id="head-scale" type="range" min="0.7" max="1.5" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="arm-length">手臂長度</label>
+        <input id="arm-length" type="range" min="0.7" max="1.4" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="leg-length">腿部長度</label>
+        <input id="leg-length" type="range" min="0.7" max="1.4" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>臉部與配件</h2>
+
+      <div class="field">
+        <label for="beard-scale">鬍子大小</label>
+        <input id="beard-scale" type="range" min="0" max="1.5" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="hat-scale">帽子大小</label>
+        <input id="hat-scale" type="range" min="0.7" max="1.4" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="field">
+        <label for="sword-scale">短劍大小</label>
+        <input id="sword-scale" type="range" min="0" max="1.4" step="0.01" value="1">
+        <output>1.00</output>
+      </div>
+
+      <div class="toggle-field">
+        <label for="show-hat">顯示帽子</label>
+        <input id="show-hat" type="checkbox" checked>
+      </div>
+
+      <div class="toggle-field">
+        <label for="show-beard">顯示鬍子</label>
+        <input id="show-beard" type="checkbox" checked>
+      </div>
+
+      <div class="toggle-field">
+        <label for="show-sword">顯示短劍</label>
+        <input id="show-sword" type="checkbox" checked>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>配色</h2>
+
+      <div class="field">
+        <label for="coat-color">外套</label>
+        <input id="coat-color" type="color" value="#7e2730">
+        <output></output>
+      </div>
+
+      <div class="field">
+        <label for="shirt-color">襯衫</label>
+        <input id="shirt-color" type="color" value="#e7ded0">
+        <output></output>
+      </div>
+
+      <div class="field">
+        <label for="skin-color">膚色</label>
+        <input id="skin-color" type="color" value="#d99a69">
+        <output></output>
+      </div>
+
+      <div class="field">
+        <label for="leather-color">皮革</label>
+        <input id="leather-color" type="color" value="#4b2e20">
+        <output></output>
+      </div>
+
+      <div class="field">
+        <label for="hat-color">帽子</label>
+        <input id="hat-color" type="color" value="#17191d">
+        <output></output>
+      </div>
+
+      <div class="field">
+        <label for="beard-color">鬍子</label>
+        <input id="beard-color" type="color" value="#3c241b">
+        <output></output>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>姿勢預覽</h2>
+
+      <select id="pose">
+        <option value="idle">待機</option>
+        <option value="walk">走路</option>
+        <option value="interact">互動</option>
+        <option value="victory">勝利</option>
+      </select>
+    </section>
+
+    <div class="actions">
+      <button id="reset" class="action-button" type="button">
+        重設
+      </button>
+
+      <button id="copy-json" class="action-button" type="button">
+        複製 JSON
+      </button>
+
+      <button id="download-json" class="action-button primary" type="button">
+        下載 JSON
+      </button>
+
+      <button id="download-code" class="action-button" type="button">
+        下載設定 JS
+      </button>
+    </div>
+
+    <div id="status"></div>
+  </aside>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from "three";
+    import {
+      OrbitControls
+    } from "three/addons/controls/OrbitControls.js";
+
+    const viewport =
+      document.getElementById("viewport");
+
+    const statusElement =
+      document.getElementById("status");
+
+    const defaults = {
+      height: 1,
+      bodyWidth: 1,
+      headScale: 1,
+      armLength: 1,
+      legLength: 1,
+      beardScale: 1,
+      hatScale: 1,
+      swordScale: 1,
+
+      showHat: true,
+      showBeard: true,
+      showSword: true,
+
+      coatColor: "#7e2730",
+      shirtColor: "#e7ded0",
+      skinColor: "#d99a69",
+      leatherColor: "#4b2e20",
+      hatColor: "#17191d",
+      beardColor: "#3c241b",
+
+      pose: "idle"
+    };
+
+    let config = {
+      ...defaults
+    };
+
+    let character = null;
+    let parts = null;
+
+    const scene =
+      new THREE.Scene();
+
+    scene.background =
+      new THREE.Color(0x111c25);
+
+    const camera =
+      new THREE.PerspectiveCamera(
+        38,
+        1,
+        0.1,
+        100
+      );
+
+    camera.position.set(
+      7.5,
+      5.8,
+      9.5
+    );
+
+    const renderer =
+      new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: "high-performance"
+      });
+
+    renderer.setPixelRatio(
+      Math.min(
+        window.devicePixelRatio || 1,
+        2
+      )
+    );
+
+    renderer.shadowMap.enabled = true;
+
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
+
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+    renderer.toneMapping =
+      THREE.ACESFilmicToneMapping;
+
+    renderer.toneMappingExposure = 1.05;
+
+    viewport.prepend(
+      renderer.domElement
+    );
+
+    const orbitControls =
+      new OrbitControls(
+        camera,
+        renderer.domElement
+      );
+
+    orbitControls.target.set(
+      0,
+      3.1,
+      0
+    );
+
+    orbitControls.enableDamping = true;
+    orbitControls.minDistance = 4;
+    orbitControls.maxDistance = 18;
+
+    const clock =
+      new THREE.Clock();
+
+    const hemisphere =
+      new THREE.HemisphereLight(
+        0xdaf6ff,
+        0x3a342d,
+        2.2
+      );
+
+    scene.add(hemisphere);
+
+    const keyLight =
+      new THREE.DirectionalLight(
+        0xffedc6,
+        3
+      );
+
+    keyLight.position.set(
+      -5,
+      10,
+      7
+    );
+
+    keyLight.castShadow = true;
+
+    scene.add(keyLight);
+
+    const floor =
+      new THREE.Mesh(
+        new THREE.CircleGeometry(
+          5.5,
+          48
+        ),
+        new THREE.MeshStandardMaterial({
+          color: 0x33454a,
+          roughness: 0.95
+        })
+      );
+
+    floor.rotation.x =
+      -Math.PI / 2;
+
+    floor.receiveShadow = true;
+
+    scene.add(floor);
+
+    const grid =
+      new THREE.GridHelper(
+        12,
+        24,
+        0x78919a,
+        0x42545c
+      );
+
+    grid.position.y = 0.01;
+
+    scene.add(grid);
+
+    function createMaterial(
+      color,
+      roughness = 0.78,
+      metalness = 0
+    ) {
+      return new THREE.MeshStandardMaterial({
+        color,
+        roughness,
+        metalness
+      });
+    }
+
+    function createMesh(
+      geometry,
+      material,
+      position = new THREE.Vector3()
+    ) {
+      const object =
+        new THREE.Mesh(
+          geometry,
+          material
+        );
+
+      object.position.copy(
+        position
+      );
+
+      object.castShadow = true;
+      object.receiveShadow = true;
+
+      return object;
+    }
+
+    function createCharacter() {
+      if (character) {
+        scene.remove(character);
+      }
+
+      const coatColor =
+        new THREE.Color(
+          config.coatColor
+        );
+
+      const leatherColor =
+        new THREE.Color(
+          config.leatherColor
+        );
+
+      const materials = {
+        coat:
+          createMaterial(
+            config.coatColor
+          ),
+
+        coatDark:
+          createMaterial(
+            coatColor.clone().multiplyScalar(0.58)
+          ),
+
+        shirt:
+          createMaterial(
+            config.shirtColor,
+            0.9
+          ),
+
+        skin:
+          createMaterial(
+            config.skinColor,
+            0.84
+          ),
+
+        leather:
+          createMaterial(
+            config.leatherColor,
+            0.86
+          ),
+
+        leatherDark:
+          createMaterial(
+            leatherColor.clone().multiplyScalar(0.5),
+            0.9
+          ),
+
+        hat:
+          createMaterial(
+            config.hatColor,
+            0.86
+          ),
+
+        beard:
+          createMaterial(
+            config.beardColor,
+            0.9
+          ),
+
+        gold:
+          createMaterial(
+            0xd2a84e,
+            0.42,
+            0.45
+          ),
+
+        eye:
+          createMaterial(
+            0x111318
+          ),
+
+        blade:
+          createMaterial(
+            0xbec7ca,
+            0.28,
+            0.75
+          )
+      };
+
+      const root =
+        new THREE.Group();
+
+      root.scale.set(
+        config.bodyWidth,
+        config.height,
+        1
+      );
+
+      const hips =
+        new THREE.Group();
+
+      hips.position.y = 2.05;
+
+      root.add(hips);
+
+      const torso =
+        new THREE.Group();
+
+      torso.position.y = 1.05;
+
+      hips.add(torso);
+
+      torso.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            1.25,
+            1.55,
+            0.75
+          ),
+          materials.shirt,
+          new THREE.Vector3(
+            0,
+            0.1,
+            0
+          )
+        )
+      );
+
+      torso.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.42,
+            1.65,
+            0.82
+          ),
+          materials.coat,
+          new THREE.Vector3(
+            -0.48,
+            0.06,
+            0.02
+          )
+        )
+      );
+
+      torso.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.42,
+            1.65,
+            0.82
+          ),
+          materials.coat,
+          new THREE.Vector3(
+            0.48,
+            0.06,
+            0.02
+          )
+        )
+      );
+
+      torso.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            1.38,
+            0.26,
+            0.84
+          ),
+          materials.leather,
+          new THREE.Vector3(
+            0,
+            -0.58,
+            0.02
+          )
+        )
+      );
+
+      torso.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.35,
+            0.35,
+            0.12
+          ),
+          materials.gold,
+          new THREE.Vector3(
+            0,
+            -0.58,
+            0.48
+          )
+        )
+      );
+
+      for (
+        const y of [
+          0.45,
+          0.05,
+          -0.35
+        ]
+      ) {
+        torso.add(
+          createMesh(
+            new THREE.SphereGeometry(
+              0.08,
+              8,
+              6
+            ),
+            materials.gold,
+            new THREE.Vector3(
+              0,
+              y,
+              0.47
+            )
+          )
+        );
+      }
+
+      const headRoot =
+        new THREE.Group();
+
+      headRoot.position.set(
+        0,
+        1.55,
+        0
+      );
+
+      headRoot.scale.setScalar(
+        config.headScale
+      );
+
+      torso.add(headRoot);
+
+      const head =
+        createMesh(
+          new THREE.DodecahedronGeometry(
+            0.56,
+            1
+          ),
+          materials.skin
+        );
+
+      head.scale.set(
+        0.95,
+        1.05,
+        0.92
+      );
+
+      headRoot.add(head);
+
+      headRoot.add(
+        createMesh(
+          new THREE.SphereGeometry(
+            0.055,
+            8,
+            6
+          ),
+          materials.eye,
+          new THREE.Vector3(
+            -0.2,
+            0.12,
+            0.48
+          )
+        )
+      );
+
+      headRoot.add(
+        createMesh(
+          new THREE.SphereGeometry(
+            0.055,
+            8,
+            6
+          ),
+          materials.eye,
+          new THREE.Vector3(
+            0.2,
+            0.12,
+            0.48
+          )
+        )
+      );
+
+      const nose =
+        createMesh(
+          new THREE.ConeGeometry(
+            0.13,
+            0.28,
+            5
+          ),
+          materials.skin,
+          new THREE.Vector3(
+            0,
+            -0.02,
+            0.53
+          )
+        );
+
+      nose.rotation.x =
+        Math.PI / 2;
+
+      headRoot.add(nose);
+
+      const beard =
+        new THREE.Group();
+
+      beard.visible =
+        config.showBeard;
+
+      beard.scale.setScalar(
+        config.beardScale
+      );
+
+      beard.add(
+        createMesh(
+          new THREE.ConeGeometry(
+            0.48,
+            0.72,
+            7
+          ),
+          materials.beard,
+          new THREE.Vector3(
+            0,
+            -0.45,
+            0.18
+          )
+        )
+      );
+
+      const moustacheLeft =
+        createMesh(
+          new THREE.ConeGeometry(
+            0.1,
+            0.35,
+            5
+          ),
+          materials.beard,
+          new THREE.Vector3(
+            -0.12,
+            -0.1,
+            0.52
+          )
+        );
+
+      moustacheLeft.rotation.set(
+        Math.PI / 2,
+        0,
+        -1.05
+      );
+
+      beard.add(
+        moustacheLeft
+      );
+
+      const moustacheRight =
+        createMesh(
+          new THREE.ConeGeometry(
+            0.1,
+            0.35,
+            5
+          ),
+          materials.beard,
+          new THREE.Vector3(
+            0.12,
+            -0.1,
+            0.52
+          )
+        );
+
+      moustacheRight.rotation.set(
+        Math.PI / 2,
+        0,
+        1.05
+      );
+
+      beard.add(
+        moustacheRight
+      );
+
+      headRoot.add(beard);
+
+      const hat =
+        new THREE.Group();
+
+      hat.position.y = 0.55;
+
+      hat.scale.setScalar(
+        config.hatScale
+      );
+
+      hat.visible =
+        config.showHat;
+
+      hat.add(
+        createMesh(
+          new THREE.CylinderGeometry(
+            0.7,
+            0.8,
+            0.18,
+            10
+          ),
+          materials.hat
+        )
+      );
+
+      const hatCrown =
+        createMesh(
+          new THREE.ConeGeometry(
+            0.66,
+            0.74,
+            3
+          ),
+          materials.hat,
+          new THREE.Vector3(
+            0,
+            0.36,
+            0
+          )
+        );
+
+      hatCrown.rotation.y =
+        Math.PI / 2;
+
+      hat.add(hatCrown);
+
+      hat.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.9,
+            0.12,
+            0.08
+          ),
+          materials.gold,
+          new THREE.Vector3(
+            0,
+            0.25,
+            0.49
+          )
+        )
+      );
+
+      headRoot.add(hat);
+
+      function createArm(side) {
+        const armRoot =
+          new THREE.Group();
+
+        armRoot.position.set(
+          side * 0.84,
+          0.88,
+          0
+        );
+
+        torso.add(armRoot);
+
+        armRoot.add(
+          createMesh(
+            new THREE.CapsuleGeometry(
+              0.22,
+              0.62 * config.armLength,
+              4,
+              8
+            ),
+            materials.coat,
+            new THREE.Vector3(
+              0,
+              -0.45 * config.armLength,
+              0
+            )
+          )
+        );
+
+        const forearm =
+          new THREE.Group();
+
+        forearm.position.y =
+          -0.9 * config.armLength;
+
+        armRoot.add(forearm);
+
+        forearm.add(
+          createMesh(
+            new THREE.CapsuleGeometry(
+              0.19,
+              0.52 * config.armLength,
+              4,
+              8
+            ),
+            materials.coatDark,
+            new THREE.Vector3(
+              0,
+              -0.37 * config.armLength,
+              0
+            )
+          )
+        );
+
+        forearm.add(
+          createMesh(
+            new THREE.DodecahedronGeometry(
+              0.22,
+              0
+            ),
+            materials.skin,
+            new THREE.Vector3(
+              0,
+              -0.78 * config.armLength,
+              0
+            )
+          )
+        );
+
+        return {
+          root: armRoot,
+          forearm
+        };
+      }
+
+      const leftArm =
+        createArm(-1);
+
+      const rightArm =
+        createArm(1);
+
+      function createLeg(side) {
+        const legRoot =
+          new THREE.Group();
+
+        legRoot.position.set(
+          side * 0.35,
+          -0.08,
+          0
+        );
+
+        hips.add(legRoot);
+
+        legRoot.add(
+          createMesh(
+            new THREE.CapsuleGeometry(
+              0.27,
+              0.68 * config.legLength,
+              4,
+              8
+            ),
+            materials.coatDark,
+            new THREE.Vector3(
+              0,
+              -0.55 * config.legLength,
+              0
+            )
+          )
+        );
+
+        const shin =
+          new THREE.Group();
+
+        shin.position.y =
+          -1 * config.legLength;
+
+        legRoot.add(shin);
+
+        shin.add(
+          createMesh(
+            new THREE.CapsuleGeometry(
+              0.23,
+              0.58 * config.legLength,
+              4,
+              8
+            ),
+            materials.leatherDark,
+            new THREE.Vector3(
+              0,
+              -0.42 * config.legLength,
+              0
+            )
+          )
+        );
+
+        shin.add(
+          createMesh(
+            new THREE.BoxGeometry(
+              0.5,
+              0.42,
+              0.82
+            ),
+            materials.hat,
+            new THREE.Vector3(
+              0,
+              -0.86 * config.legLength,
+              0.18
+            )
+          )
+        );
+
+        return {
+          root: legRoot,
+          shin
+        };
+      }
+
+      const leftLeg =
+        createLeg(-1);
+
+      const rightLeg =
+        createLeg(1);
+
+      const sword =
+        new THREE.Group();
+
+      sword.position.set(
+        0.72,
+        0.2,
+        -0.05
+      );
+
+      sword.rotation.z =
+        -0.28;
+
+      sword.scale.setScalar(
+        config.swordScale
+      );
+
+      sword.visible =
+        config.showSword;
+
+      torso.add(sword);
+
+      sword.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.16,
+            1.25,
+            0.08
+          ),
+          materials.blade,
+          new THREE.Vector3(
+            0,
+            -0.4,
+            0
+          )
+        )
+      );
+
+      sword.add(
+        createMesh(
+          new THREE.BoxGeometry(
+            0.52,
+            0.12,
+            0.16
+          ),
+          materials.gold,
+          new THREE.Vector3(
+            0,
+            0.25,
+            0
+          )
+        )
+      );
+
+      character = root;
+
+      parts = {
+        hips,
+        torso,
+        headRoot,
+        leftArm,
+        rightArm,
+        leftLeg,
+        rightLeg,
+        hat,
+        beard,
+        sword
+      };
+
+      scene.add(character);
+    }
+
+    function resetRotation(object) {
+      object.rotation.set(
+        0,
+        0,
+        0
+      );
+    }
+
+    function applyPose(time) {
+      if (!parts) {
+        return;
+      }
+
+      [
+        parts.leftArm.root,
+        parts.rightArm.root,
+        parts.leftArm.forearm,
+        parts.rightArm.forearm,
+        parts.leftLeg.root,
+        parts.rightLeg.root,
+        parts.torso,
+        parts.headRoot
+      ].forEach(
+        resetRotation
+      );
+
+      parts.torso.position.y = 0;
+
+      switch (config.pose) {
+        case "walk": {
+          const swing =
+            Math.sin(time * 5.5) *
+            0.75;
+
+          parts.leftArm.root.rotation.x =
+            swing;
+
+          parts.rightArm.root.rotation.x =
+            -swing;
+
+          parts.leftLeg.root.rotation.x =
+            -swing * 0.85;
+
+          parts.rightLeg.root.rotation.x =
+            swing * 0.85;
+
+          parts.torso.rotation.z =
+            Math.sin(time * 5.5) *
+            0.03;
+
+          parts.torso.position.y =
+            Math.abs(
+              Math.sin(time * 5.5)
+            ) * 0.05;
+
+          break;
+        }
+
+        case "interact":
+          parts.rightArm.root.rotation.x =
+            -1.35;
+
+          parts.rightArm.forearm.rotation.x =
+            -0.55;
+
+          parts.headRoot.rotation.y =
+            -0.16;
+
+          break;
+
+        case "victory":
+          parts.rightArm.root.rotation.x =
+            -2.35;
+
+          parts.rightArm.root.rotation.z =
+            -0.2;
+
+          parts.leftArm.root.rotation.x =
+            -1.1;
+
+          parts.torso.rotation.z =
+            Math.sin(time * 4) *
+            0.05;
+
+          break;
+
+        case "idle":
+        default:
+          parts.torso.position.y =
+            Math.sin(time * 2) *
+            0.025;
+
+          parts.headRoot.rotation.y =
+            Math.sin(time * 0.8) *
+            0.06;
+
+          break;
+      }
+    }
+
+    const inputBindings = [
+      {
+        id: "height",
+        key: "height",
+        type: "number"
+      },
+      {
+        id: "body-width",
+        key: "bodyWidth",
+        type: "number"
+      },
+      {
+        id: "head-scale",
+        key: "headScale",
+        type: "number"
+      },
+      {
+        id: "arm-length",
+        key: "armLength",
+        type: "number"
+      },
+      {
+        id: "leg-length",
+        key: "legLength",
+        type: "number"
+      },
+      {
+        id: "beard-scale",
+        key: "beardScale",
+        type: "number"
+      },
+      {
+        id: "hat-scale",
+        key: "hatScale",
+        type: "number"
+      },
+      {
+        id: "sword-scale",
+        key: "swordScale",
+        type: "number"
+      },
+      {
+        id: "show-hat",
+        key: "showHat",
+        type: "boolean"
+      },
+      {
+        id: "show-beard",
+        key: "showBeard",
+        type: "boolean"
+      },
+      {
+        id: "show-sword",
+        key: "showSword",
+        type: "boolean"
+      },
+      {
+        id: "coat-color",
+        key: "coatColor",
+        type: "string"
+      },
+      {
+        id: "shirt-color",
+        key: "shirtColor",
+        type: "string"
+      },
+      {
+        id: "skin-color",
+        key: "skinColor",
+        type: "string"
+      },
+      {
+        id: "leather-color",
+        key: "leatherColor",
+        type: "string"
+      },
+      {
+        id: "hat-color",
+        key: "hatColor",
+        type: "string"
+      },
+      {
+        id: "beard-color",
+        key: "beardColor",
+        type: "string"
+      },
+      {
+        id: "pose",
+        key: "pose",
+        type: "string"
+      }
+    ];
+
+    for (
+      const binding of inputBindings
+    ) {
+      const element =
+        document.getElementById(
+          binding.id
+        );
+
+      element.addEventListener(
+        "input",
+        () => {
+          if (
+            binding.type ===
+            "number"
+          ) {
+            config[binding.key] =
+              Number(
+                element.value
+              );
+          } else if (
+            binding.type ===
+            "boolean"
+          ) {
+            config[binding.key] =
+              element.checked;
+          } else {
+            config[binding.key] =
+              element.value;
+          }
+
+          const output =
+            element.parentElement
+              ?.querySelector(
+                "output"
+              );
+
+          if (
+            output &&
+            binding.type ===
+              "number"
+          ) {
+            output.textContent =
+              Number(
+                element.value
+              ).toFixed(2);
+          }
+
+          createCharacter();
+        }
+      );
+    }
+
+    function syncInterface() {
+      for (
+        const binding of inputBindings
+      ) {
+        const element =
+          document.getElementById(
+            binding.id
+          );
+
+        if (
+          binding.type ===
+          "boolean"
+        ) {
+          element.checked =
+            Boolean(
+              config[binding.key]
+            );
+        } else {
+          element.value =
+            config[binding.key];
+        }
+
+        const output =
+          element.parentElement
+            ?.querySelector(
+              "output"
+            );
+
+        if (
+          output &&
+          binding.type ===
+            "number"
+        ) {
+          output.textContent =
+            Number(
+              config[binding.key]
+            ).toFixed(2);
+        }
+      }
+    }
+
+    function getConfigurationJson() {
+      return JSON.stringify(
+        config,
+        null,
+        2
+      );
+    }
+
+    function setStatus(
+      text,
+      isError = false
+    ) {
+      statusElement.textContent =
+        text;
+
+      statusElement.style.color =
+        isError
+          ? "#ef9a9a"
+          : "#9ed7ae";
+    }
+
+    function downloadFile(
+      fileName,
+      content,
+      type
+    ) {
+      const blob =
+        new Blob(
+          [
+            content
+          ],
+          {
+            type
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.href = url;
+      link.download = fileName;
+
+      link.click();
+
+      URL.revokeObjectURL(
+        url
+      );
+    }
+
+    document
+      .getElementById("reset")
+      .addEventListener(
+        "click",
+        () => {
+          config = {
+            ...defaults
+          };
+
+          syncInterface();
+          createCharacter();
+          setStatus(
+            "已重設角色"
+          );
+        }
+      );
+
+    document
+      .getElementById("copy-json")
+      .addEventListener(
+        "click",
+        async () => {
+          try {
+            await navigator.clipboard.writeText(
+              getConfigurationJson()
+            );
+
+            setStatus(
+              "JSON 已複製"
+            );
+          } catch {
+            setStatus(
+              "瀏覽器禁止複製，請使用下載 JSON",
+              true
+            );
+          }
+        }
+      );
+
+    document
+      .getElementById("download-json")
+      .addEventListener(
+        "click",
+        () => {
+          downloadFile(
+            "pirate-character.json",
+            getConfigurationJson(),
+            "application/json"
+          );
+
+          setStatus(
+            "已下載 JSON"
+          );
+        }
+      );
+
+    document
+      .getElementById("download-code")
+      .addEventListener(
+        "click",
+        () => {
+          const source =
+            `export const PIRATE_CHARACTER_CONFIG = ${getConfigurationJson()};\n`;
+
+          downloadFile(
+            "pirate-character-config.js",
+            source,
+            "text/javascript"
+          );
+
+          setStatus(
+            "已下載角色設定 JS"
+          );
+        }
+      );
+
+    function setView(
+      x,
+      y,
+      z
+    ) {
+      camera.position.set(
+        x,
+        y,
+        z
+      );
+
+      orbitControls.target.set(
+        0,
+        3.1,
+        0
+      );
+
+      orbitControls.update();
+    }
+
+    document
+      .getElementById("front-view")
+      .addEventListener(
+        "click",
+        () => {
+          setView(
+            0,
+            4.3,
+            9
+          );
+        }
+      );
+
+    document
+      .getElementById("side-view")
+      .addEventListener(
+        "click",
+        () => {
+          setView(
+            9,
+            4.3,
+            0
+          );
+        }
+      );
+
+    document
+      .getElementById("back-view")
+      .addEventListener(
+        "click",
+        () => {
+          setView(
+            0,
+            4.3,
+            -9
+          );
+        }
+      );
+
+    document
+      .getElementById("toggle-grid")
+      .addEventListener(
+        "click",
+        () => {
+          grid.visible =
+            !grid.visible;
+        }
+      );
+
+    function resizeRenderer() {
+      const rect =
+        viewport.getBoundingClientRect();
+
+      renderer.setSize(
+        rect.width,
+        rect.height,
+        false
+      );
+
+      camera.aspect =
+        rect.width /
+        rect.height;
+
+      camera.updateProjectionMatrix();
+    }
+
+    window.addEventListener(
+      "resize",
+      resizeRenderer
+    );
+
+    syncInterface();
+    createCharacter();
+    resizeRenderer();
+
+    function animate() {
+      requestAnimationFrame(
+        animate
+      );
+
+      applyPose(
+        clock.getElapsedTime()
+      );
+
+      orbitControls.update();
+
+      renderer.render(
+        scene,
+        camera
+      );
+    }
+
+    animate();
+  </script>
+</body>
+</html>
